@@ -77,7 +77,7 @@ func (f *File) parseIdentifiers() []*identifier {
 	for _, ident := range identifiers {
 		node, err := ident.listPath.FilterFile(f.ast)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error listing ident %d: %v", ident.kind, err)
+			fmt.Fprintf(os.Stderr, "error listing ident %s: %v", ident.kind, err)
 			continue
 		}
 

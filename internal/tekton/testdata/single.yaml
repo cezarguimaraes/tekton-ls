@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: hello
+spec:
+  parameters:
+  - name: 10
+    description: "my param foo meant for stuff"
+    default: "hey"
+  - name: b
+  - name: >-
+      baz
+  results:
+  - name: foo
+  workspaces:
+  - name: test
+  steps:
+    - name: echo
+      image: idk
+      test: "foo"
+      script: |
+        #!/bin/sh
+        echo "Hello $(params.baz)
+        $(results.foo.path)
+        $(results.foo.path)
+        $(results.foo.path)
+        $(workspaces.test.path)

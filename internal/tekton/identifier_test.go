@@ -1,50 +1,72 @@
 package tekton
 
 import (
+	"os"
 	"testing"
 
 	"github.com/cezarguimaraes/tekton-lsp/internal/file"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-var document = `apiVersion: tekton.dev/v1beta1
-kind: Task
-metadata:
-  name: hello
-spec:
-  parameters:
-  - name: foo
-    description: "my param foo meant for stuff"
-    default: "hey"
-  - name: b
-  - name: >-
-      baz
-  results:
-  - name: foo
-  workspaces:
-  - name: test
-  steps:
-    - name: echo
-      image: idk
-      test: "foo"
-      script: |
-        #!/bin/sh
-        echo "Hello $(params.baz)
-        $(results.foo.path)
-        $(results.foo.path)
-        $(results.foo.path)
-        $(workspaces.test.path)`
+var (
+	singleDoc []byte
+	multiDoc  []byte
+)
+
+func init() {
+	singleDoc, _ = os.ReadFile("./testdata/single.yaml")
+	multiDoc, _ = os.ReadFile("./testdata/multiDoc.yaml")
+}
 
 func TestParseIdentifiers(t *testing.T) {
-	f := ParseFile(file.File(document))
-	ids := f.parseIdentifiers()
-	for _, id := range ids {
-		t.Log(id.kind, id.meta.Name(), id.meta.Documentation(), id.definition.GetToken().Position, id.definition.String())
+	f := ParseFile(file.File(string(singleDoc)))
+	expected := []struct {
+		kind    identifierKind
+		name    string
+		defLine int // 1 based
+		defCol  int // 1 based
+	}{
+		{
+			kind:    IdentParam,
+			name:    "foo",
+			defLine: 7,
+			defCol:  11,
+		},
+		{
+			kind:    IdentParam,
+			name:    "b",
+			defLine: 10,
+			defCol:  11,
+		},
+		{
+			kind:    IdentParam,
+			name:    "baz",
+			defLine: 11,
+			defCol:  11,
+		},
+		{
+			kind:    IdentResult,
+			name:    "foo",
+			defLine: 14,
+			defCol:  11,
+		},
+		{
+			kind:    IdentWorkspace,
+			name:    "test",
+			defLine: 16,
+			defCol:  11,
+		},
+	}
+	for i, id := range f.identifiers {
+		exp := expected[i]
+		if id.kind != exp.kind {
+			t.Errorf("id[%d].kind: got %s, want %s", i, id.kind, exp.kind)
+		}
 	}
 }
 
 func TestFindReference(t *testing.T) {
-	f := ParseFile(file.File(document))
+	f := ParseFile(file.File(string(singleDoc)))
 	pos := protocol.Position{
 		Line:      25,
 		Character: 20,
