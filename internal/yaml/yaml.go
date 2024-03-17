@@ -64,7 +64,8 @@ func FindNode(node ast.Node, line, col int) ast.Node {
 		if !cmpPos(p, tok.Position) && !cmpPos(nxt.Position, p) {
 			fmt.Println("found")
 			res = n
-			return false
+			// keep iterating to find the deepest node that contains the position
+			return true
 		}
 
 		return true

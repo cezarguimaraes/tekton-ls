@@ -177,17 +177,14 @@ func (th *TektonHandler) docCompletion() protocol.TextDocumentCompletionFunc {
 func (th *TektonHandler) definition() protocol.TextDocumentDefinitionFunc {
 	return func(context *glsp.Context, params *protocol.DefinitionParams) (any, error) {
 		f := getDoc(th, params.TextDocument)
-		defPos := f.Definition(params.Position)
-		if defPos == nil {
+		def := f.Definition(params.Position)
+		if def == nil {
 			return nil, nil
 		}
 
 		loc := protocol.Location{
-			URI: params.TextDocument.URI,
-			Range: protocol.Range{
-				Start: *defPos,
-				End:   *defPos,
-			},
+			URI:   params.TextDocument.URI,
+			Range: *def,
 		}
 		return loc, nil
 	}
@@ -214,19 +211,20 @@ func (th *TektonHandler) hover() protocol.TextDocumentHoverFunc {
 func (th *TektonHandler) references() protocol.TextDocumentReferencesFunc {
 	return func(context *glsp.Context, params *protocol.ReferenceParams) ([]protocol.Location, error) {
 		f := getDoc(th, params.TextDocument)
-		doc := f.Hover(params.Position)
-		if doc == nil {
+		refs := f.FindReferences(params.Position)
+		if len(refs) == 0 {
 			return nil, nil
 		}
 
-		hv := &protocol.Hover{
-			Contents: protocol.MarkupContent{
-				Kind:  protocol.MarkupKindMarkdown,
-				Value: *doc,
-			},
+		locs := []protocol.Location{}
+		for _, ref := range refs {
+			locs = append(locs, protocol.Location{
+				URI:   params.TextDocument.URI,
+				Range: ref,
+			})
 		}
-		_ = hv
-		return nil, nil
+
+		return locs, nil
 	}
 }
 

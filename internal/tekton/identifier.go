@@ -7,6 +7,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
+	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
 type identifierKind int
@@ -33,7 +34,8 @@ type identifier struct {
 	kind       identifierKind
 	meta       Meta
 	definition ast.Node
-	references [][]int
+	prange     protocol.Range
+	references []protocol.Range
 }
 
 var identifiers = []struct {
@@ -109,6 +111,15 @@ func (f *File) parseIdentifiers() []*identifier {
 				kind:       ident.kind,
 				meta:       ident.meta(m),
 				definition: def,
+				prange: protocol.Range{
+					Start: protocol.Position{
+						Line:      uint32(def.GetToken().Position.Line - 1),
+						Character: uint32(def.GetToken().Position.Column - 1),
+					},
+					End: f.OffsetPosition(
+						def.GetToken().Position.Offset + len(def.String()),
+					),
+				},
 			}
 			ids = append(ids, id)
 
@@ -119,15 +130,21 @@ func (f *File) parseIdentifiers() []*identifier {
 		for _, match := range refs {
 			name := string(f.Bytes())[match[2]:match[3]]
 			id, _ := identMap[name]
+
+			start := f.OffsetPosition(match[0])
+			end := f.OffsetPosition(match[1] - 1)
 			if id != nil {
-				id.references = append(id.references, match)
+				id.references = append(id.references, protocol.Range{
+					Start: start,
+					End:   end,
+				})
 			}
 			f.references = append(f.references, reference{
 				kind:    ident.kind,
 				name:    name,
 				ident:   id,
-				start:   f.OffsetPosition(match[0]),
-				end:     f.OffsetPosition(match[1]),
+				start:   start,
+				end:     end,
 				offsets: match,
 			})
 		}
