@@ -19,14 +19,22 @@ type diag struct {
 
 var diags = []diag{
 	{
+		// TODO: validate object params
 		label:    "parameter",
 		regexp:   regexp.MustCompile(`\$\(params\.(.*?)\)`),
 		listFunc: Parameters,
 	},
 	{
+		// TODO: validate .path
 		label:    "result",
 		regexp:   regexp.MustCompile(`\$\(results\.(.*?)\.(.*?)\)`),
 		listFunc: Results,
+	},
+	{
+		// TODO: validate .path
+		label:    "workspaces",
+		regexp:   regexp.MustCompile(`\$\(workspaces\.(.*?)\.(.*?)\)`),
+		listFunc: Workspaces,
 	},
 }
 

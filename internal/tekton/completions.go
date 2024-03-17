@@ -16,12 +16,17 @@ type completion struct {
 
 var completions = []completion{
 	{
+		// TODO: object params
 		listFunc: Parameters,
 		format:   "$(params.%s)",
 	},
 	{
 		listFunc: Results,
 		format:   "$(results.%s.path)",
+	},
+	{
+		listFunc: Workspaces,
+		format:   "$(workspaces.%s.path)",
 	},
 }
 
