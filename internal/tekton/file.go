@@ -54,7 +54,7 @@ func ParseFile(f file.File) *File {
 	return r
 }
 
-func (f *File) findReference(pos protocol.Position) *reference {
+func (f *File) findDefinition(pos protocol.Position) *reference {
 	for _, ref := range f.references {
 		// assuming ref.start.Line = ref.end.Line
 		if ref.start.Line != pos.Line {

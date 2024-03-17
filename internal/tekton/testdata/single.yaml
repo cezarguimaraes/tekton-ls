@@ -4,7 +4,7 @@ metadata:
   name: hello
 spec:
   parameters:
-  - name: 10
+  - name: foo
     description: "my param foo meant for stuff"
     default: "hey"
   - name: b
@@ -17,7 +17,9 @@ spec:
   steps:
     - name: echo
       image: idk
-      test: "foo"
+      env:
+      - name: FOO
+        value: $(params.foo)
       script: |
         #!/bin/sh
         echo "Hello $(params.baz)

@@ -38,6 +38,7 @@ func NewTektonHandler() *TektonHandler {
 		TextDocumentDidChange:  th.docChange(),
 		TextDocumentCompletion: th.docCompletion(),
 		TextDocumentDefinition: th.definition(),
+		TextDocumentReferences: th.references(),
 	}
 	return th
 }
@@ -207,6 +208,25 @@ func (th *TektonHandler) hover() protocol.TextDocumentHoverFunc {
 			},
 		}
 		return hv, nil
+	}
+}
+
+func (th *TektonHandler) references() protocol.TextDocumentReferencesFunc {
+	return func(context *glsp.Context, params *protocol.ReferenceParams) ([]protocol.Location, error) {
+		f := getDoc(th, params.TextDocument)
+		doc := f.Hover(params.Position)
+		if doc == nil {
+			return nil, nil
+		}
+
+		hv := &protocol.Hover{
+			Contents: protocol.MarkupContent{
+				Kind:  protocol.MarkupKindMarkdown,
+				Value: *doc,
+			},
+		}
+		_ = hv
+		return nil, nil
 	}
 }
 

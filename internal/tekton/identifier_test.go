@@ -62,16 +62,39 @@ func TestParseIdentifiers(t *testing.T) {
 		if id.kind != exp.kind {
 			t.Errorf("id[%d].kind: got %s, want %s", i, id.kind, exp.kind)
 		}
+		t.Log(id.references)
 	}
 }
 
-func TestFindReference(t *testing.T) {
+func TestFindReferences(t *testing.T) {
+	f := ParseFile(file.File(string(multiDoc)))
+	tcs := []struct {
+		pos  protocol.Position
+		refs [][]int
+	}{
+		{
+			pos: protocol.Position{
+				Line:      6,
+				Character: 10,
+			},
+			refs: [][]int{
+				{},
+			},
+		},
+	}
+	for _, tc := range tcs {
+		_ = f
+		_ = tc
+	}
+}
+
+func TestFindDefinition(t *testing.T) {
 	f := ParseFile(file.File(string(singleDoc)))
 	pos := protocol.Position{
 		Line:      25,
 		Character: 20,
 	}
-	ref := f.findReference(pos)
+	ref := f.findDefinition(pos)
 	if ref == nil {
 		t.Fatalf("reference not found")
 	}
