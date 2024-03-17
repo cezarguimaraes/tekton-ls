@@ -5,21 +5,25 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/tliron/commonlog"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-func (f File) Diagnostics(log commonlog.Logger) ([]protocol.Diagnostic, error) {
+func (f *File) Diagnostics() ([]protocol.Diagnostic, error) {
 	rs := make([]protocol.Diagnostic, 0)
-
 	if f.parseError != nil {
 		if d := syntaxErrorDiagnostic(f.parseError); d != nil {
 			rs = append(rs, *d)
 			return rs, nil
 		}
 	}
+	// TODO
+	return nil, nil
+}
 
-	for _, ref := range f.references {
+func (d *Document) diagnostics() ([]protocol.Diagnostic, error) {
+	rs := make([]protocol.Diagnostic, 0)
+
+	for _, ref := range d.references {
 		if ref.ident != nil {
 			continue
 		}
@@ -29,8 +33,8 @@ func (f File) Diagnostics(log commonlog.Logger) ([]protocol.Diagnostic, error) {
 
 		rs = append(rs, protocol.Diagnostic{
 			Range: protocol.Range{
-				Start: f.OffsetPosition(ref.offsets[0]),
-				End:   f.OffsetPosition(ref.offsets[1]),
+				Start: d.OffsetPosition(ref.offsets[0]),
+				End:   d.OffsetPosition(ref.offsets[1]),
 			},
 			Message:  fmt.Sprintf("unknown %s %s", ref.kind, ref.name),
 			Severity: &sev,

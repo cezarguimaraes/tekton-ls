@@ -31,6 +31,14 @@ type File struct {
 	ast        *ast.File
 	parseError error
 
+	docs []*Document
+}
+
+type Document struct {
+	file.File
+
+	ast *ast.DocumentNode
+
 	parameters []Meta
 	results    []Meta
 	workspaces []Meta
@@ -49,13 +57,21 @@ func ParseFile(f file.File) *File {
 		return r
 	}
 
-	r.identifiers = r.parseIdentifiers()
+	for _, doc := range r.ast.Docs {
+		d := &Document{
+			File: f,
+			ast:  doc,
+		}
+		d.parseIdentifiers()
+
+		r.docs = append(r.docs, d)
+	}
 
 	return r
 }
 
-func (f *File) findDefinition(pos protocol.Position) *reference {
-	for _, ref := range f.references {
+func (d *Document) findDefinition(pos protocol.Position) *reference {
+	for _, ref := range d.references {
 		// assuming ref.start.Line = ref.end.Line
 		if ref.start.Line != pos.Line {
 			continue

@@ -74,10 +74,10 @@ var identifiers = []struct {
 	},
 }
 
-func (f *File) parseIdentifiers() []*identifier {
+func (d *Document) parseIdentifiers() {
 	ids := []*identifier{}
 	for _, ident := range identifiers {
-		node, err := ident.listPath.FilterFile(f.ast)
+		node, err := ident.listPath.FilterNode(d.ast.Body)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error listing ident %s: %v", ident.kind, err)
 			continue
@@ -105,7 +105,7 @@ func (f *File) parseIdentifiers() []*identifier {
 
 			def, _ := mustPathString(
 				fmt.Sprintf(ident.pathFormat, idx),
-			).FilterFile(f.ast)
+			).FilterNode(d.ast.Body)
 
 			id := &identifier{
 				kind:       ident.kind,
@@ -116,7 +116,7 @@ func (f *File) parseIdentifiers() []*identifier {
 						Line:      uint32(def.GetToken().Position.Line - 1),
 						Character: uint32(def.GetToken().Position.Column - 1),
 					},
-					End: f.OffsetPosition(
+					End: d.OffsetPosition(
 						def.GetToken().Position.Offset + len(def.String()),
 					),
 				},
@@ -126,20 +126,20 @@ func (f *File) parseIdentifiers() []*identifier {
 			identMap[id.meta.Name()] = id
 		}
 
-		refs := ident.referenceRegex.FindAllSubmatchIndex(f.Bytes(), 1000)
+		refs := ident.referenceRegex.FindAllSubmatchIndex(d.Bytes(), 1000)
 		for _, match := range refs {
-			name := string(f.Bytes())[match[2]:match[3]]
+			name := string(d.Bytes())[match[2]:match[3]]
 			id, _ := identMap[name]
 
-			start := f.OffsetPosition(match[0])
-			end := f.OffsetPosition(match[1] - 1)
+			start := d.OffsetPosition(match[0])
+			end := d.OffsetPosition(match[1] - 1)
 			if id != nil {
 				id.references = append(id.references, protocol.Range{
 					Start: start,
 					End:   end,
 				})
 			}
-			f.references = append(f.references, reference{
+			d.references = append(d.references, reference{
 				kind:    ident.kind,
 				name:    name,
 				ident:   id,
@@ -149,5 +149,5 @@ func (f *File) parseIdentifiers() []*identifier {
 			})
 		}
 	}
-	return ids
+	d.identifiers = ids
 }

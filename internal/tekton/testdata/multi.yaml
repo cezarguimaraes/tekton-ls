@@ -1,0 +1,59 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task_a
+spec:
+  parameters:
+  - name: foo
+    description: "my param foo meant for stuff"
+    default: "hey"
+  - name: b
+  - name: >-
+      baz
+  results:
+  - name: foo
+  workspaces:
+  - name: test
+  steps:
+    - name: echo
+      image: idk
+      env:
+      - name: FOO
+        value: $(params.foo)
+      script: |
+        #!/bin/sh
+        echo "Hello $(params.baz)
+        $(results.foo.path)
+        $(results.foo.path)
+        $(results.foo.path)
+        $(workspaces.test.path)
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task_b
+spec:
+  parameters:
+  - name: foo
+    description: "my param foo meant for stuff"
+    default: "hey"
+  - name: b
+  - name: >-
+      baz
+  results:
+  - name: foo
+  workspaces:
+  - name: test
+  steps:
+    - name: echo
+      image: idk
+      env:
+      - name: FOO
+        value: $(params.foo)
+      script: |
+        #!/bin/sh
+        echo "Hello $(params.baz)
+        $(results.foo.path)
+        $(results.foo.path)
+        $(results.foo.path)
+        $(workspaces.test.path)

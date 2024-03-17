@@ -16,11 +16,11 @@ var (
 
 func init() {
 	singleDoc, _ = os.ReadFile("./testdata/single.yaml")
-	multiDoc, _ = os.ReadFile("./testdata/multiDoc.yaml")
+	multiDoc, _ = os.ReadFile("./testdata/multi.yaml")
 }
 
 func TestParseIdentifiers(t *testing.T) {
-	f := ParseFile(file.File(string(singleDoc)))
+	single := ParseFile(file.File(string(singleDoc)))
 	expected := []struct {
 		kind    identifierKind
 		name    string
@@ -92,8 +92,15 @@ func TestParseIdentifiers(t *testing.T) {
 			},
 		},
 	}
-	for i, id := range f.identifiers {
-		exp := expected[i]
+	// for i, id := range single.docs[0].identifiers {
+	for i, exp := range expected {
+		if i >= len(single.docs[0].identifiers) {
+			t.Fatalf("parseIdentifiers: got %d identifiers, want %d",
+				len(single.docs[0].identifiers),
+				len(expected),
+			)
+		}
+		id := single.docs[0].identifiers[i]
 		if id.kind != exp.kind {
 			t.Errorf("id[%d].kind: got %s, want %s", i, id.kind, exp.kind)
 		}
@@ -144,7 +151,7 @@ func TestFindReferences(t *testing.T) {
 		},
 	}
 	for _, tc := range tcs {
-		got := f.FindReferences(tc.pos)
+		got := f.docs[0].findReferences(tc.pos)
 		if !reflect.DeepEqual(got, tc.refs) {
 			t.Errorf("FindReferences(%v):\ngot %v\nwant %v", tc.pos, got, tc.refs)
 		}
@@ -157,7 +164,7 @@ func TestFindDefinition(t *testing.T) {
 		Line:      25,
 		Character: 20,
 	}
-	ref := f.findDefinition(pos)
+	ref := f.docs[0].findDefinition(pos)
 	if ref == nil {
 		t.Fatalf("reference not found")
 	}

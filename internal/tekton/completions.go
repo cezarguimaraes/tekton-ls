@@ -3,7 +3,7 @@ package tekton
 import (
 	"fmt"
 
-	"github.com/tliron/commonlog"
+	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
 type CompletionCandidate struct {
@@ -15,13 +15,19 @@ func (c CompletionCandidate) String() string {
 	return c.Text
 }
 
-func (f File) Completions(log commonlog.Logger) []fmt.Stringer {
+func (f *File) Completions(pos protocol.Position) []fmt.Stringer {
 	res := []fmt.Stringer{}
 	if f.parseError != nil {
 		return res
 	}
+	// TODO: find doc for pos
+	return res
+}
 
-	for _, id := range f.identifiers {
+func (d *Document) completions() []fmt.Stringer {
+	res := []fmt.Stringer{}
+
+	for _, id := range d.identifiers {
 		cs := id.meta.Completions()
 		for _, c := range cs {
 			res = append(res, CompletionCandidate{

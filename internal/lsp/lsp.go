@@ -69,7 +69,7 @@ func (th *TektonHandler) getDoc(uri string) *tekton.File {
 }
 
 func (th *TektonHandler) publishDiagnostics(context *glsp.Context, doc protocol.VersionedTextDocumentIdentifier) error {
-	dgs, err := getDoc(th, doc).Diagnostics(th.Log)
+	dgs, err := getDoc(th, doc).Diagnostics()
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (th *TektonHandler) docCompletion() protocol.TextDocumentCompletionFunc {
 			line := f.GetLine(params.Position.Line)
 			query := line[start:min(len(line), int(params.Position.Character))]
 
-			candidates := f.Completions(th.Log)
+			candidates := f.Completions(params.Position)
 
 			matches := completion.Solve(query, candidates)
 			kind := protocol.CompletionItemKindProperty
