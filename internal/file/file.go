@@ -38,6 +38,7 @@ func (f File) FindPrevious(c string, pos protocol.Position) int {
 	return strings.LastIndex(line[0:n], c)
 }
 
+// TODO: optimize
 func (f File) OffsetPosition(offset int) protocol.Position {
 	s := string(f)
 	line := uint32(0)

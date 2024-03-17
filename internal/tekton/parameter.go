@@ -2,14 +2,15 @@ package tekton
 
 import (
 	"fmt"
-	"strings"
-
-	"github.com/cezarguimaraes/tekton-lsp/internal/file"
 )
 
-var parametersPath = mustPathString("$.spec.parameters[*]")
-
 type Parameter StringMap
+
+var _ Meta = Parameter{}
+
+func (p Parameter) Completions() []string {
+	return []string{fmt.Sprintf("$(params.%s)", p.Name())}
+}
 
 func (p Parameter) Name() string {
 	return StringMap(p)["name"]
@@ -38,30 +39,4 @@ func (p Parameter) Documentation() string {
 		p.Type(),
 		p.Description(),
 	)
-}
-
-func (f *File) parseParameters() error {
-	var params []Parameter
-	err := f.readPath(parametersPath, &params)
-	if err != nil {
-		return err
-	}
-	var meta []Meta
-	for _, p := range params {
-		meta = append(meta, p)
-	}
-	f.parameters = meta
-	return nil
-}
-
-// TODO: pre-parse file
-func Parameters(file file.File) ([]Meta, error) {
-	path := mustPathString("$.spec.parameters[*]")
-	var params []Parameter
-	err := path.Read(strings.NewReader(string(file)), &params)
-	var meta []Meta
-	for _, p := range params {
-		meta = append(meta, p)
-	}
-	return meta, err
 }

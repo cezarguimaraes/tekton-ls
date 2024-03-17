@@ -9,33 +9,6 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-type diag struct {
-	label    string
-	regexp   *regexp.Regexp
-	listFunc func(File) []Meta
-}
-
-var diags = []diag{
-	{
-		// TODO: validate object params
-		label:    "parameter",
-		regexp:   regexp.MustCompile(`\$\(params\.(.*?)\)`),
-		listFunc: func(f File) []Meta { return f.parameters },
-	},
-	{
-		// TODO: validate .path
-		label:    "result",
-		regexp:   regexp.MustCompile(`\$\(results\.(.*?)\.(.*?)\)`),
-		listFunc: func(f File) []Meta { return f.results },
-	},
-	{
-		// TODO: validate .path
-		label:    "workspace",
-		regexp:   regexp.MustCompile(`\$\(workspaces\.(.*?)\.(.*?)\)`),
-		listFunc: func(f File) []Meta { return f.workspaces },
-	},
-}
-
 func (f File) Diagnostics(log commonlog.Logger) ([]protocol.Diagnostic, error) {
 	rs := make([]protocol.Diagnostic, 0)
 
@@ -46,31 +19,25 @@ func (f File) Diagnostics(log commonlog.Logger) ([]protocol.Diagnostic, error) {
 		}
 	}
 
-	for _, diag := range diags {
-		ls := diag.listFunc(f)
+	for _, ref := range f.references {
+		if ref.ident != nil {
+			continue
+		}
 
-		m := mapFromSlice(ls)
-
-		refs := diag.regexp.FindAllSubmatchIndex(f.Bytes(), 1000)
 		sev := protocol.DiagnosticSeverityError
 		src := "validation"
 
-		for _, match := range refs {
-			name := string(f.Bytes())[match[2]:match[3]]
-			if _, ok := m[name]; ok {
-				continue
-			}
-			rs = append(rs, protocol.Diagnostic{
-				Range: protocol.Range{
-					Start: f.OffsetPosition(match[0]),
-					End:   f.OffsetPosition(match[1]),
-				},
-				Message:  fmt.Sprintf("unknown %s %s", diag.label, name),
-				Severity: &sev,
-				Source:   &src,
-			})
-		}
+		rs = append(rs, protocol.Diagnostic{
+			Range: protocol.Range{
+				Start: f.OffsetPosition(ref.offsets[0]),
+				End:   f.OffsetPosition(ref.offsets[1]),
+			},
+			Message:  fmt.Sprintf("unknown %s %s", ref.kind, ref.name),
+			Severity: &sev,
+			Source:   &src,
+		})
 	}
+
 	return rs, nil
 }
 
@@ -105,12 +72,4 @@ func syntaxErrorDiagnostic(err error) *protocol.Diagnostic {
 		Severity: &sev,
 		Source:   &src,
 	}
-}
-
-func mapFromSlice(s []Meta) map[string]struct{} {
-	m := make(map[string]struct{})
-	for _, p := range s {
-		m[p.Name()] = struct{}{}
-	}
-	return m
 }

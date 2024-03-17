@@ -7,19 +7,19 @@ import (
 	"github.com/goccy/go-yaml/parser"
 )
 
-type StringMap = map[string]string
-
 type Meta interface {
 	Name() string
 	Documentation() string
+	Completions() []string
 }
 
-func mustPathString(path string) *yaml.Path {
-	p, err := yaml.PathString(path)
-	if err != nil {
-		panic(err)
-	}
-	return p
+type reference struct {
+	kind identifierKind
+	name string
+
+	offsets []int
+
+	ident *identifier
 }
 
 type File struct {
@@ -31,6 +31,9 @@ type File struct {
 	parameters []Meta
 	results    []Meta
 	workspaces []Meta
+
+	identifiers []*identifier
+	references  []reference
 }
 
 func ParseFile(f file.File) *File {
@@ -43,18 +46,17 @@ func ParseFile(f file.File) *File {
 		return r
 	}
 
-	// TODO: debug log
-	r.parseParameters()
-	r.parseResults()
-	r.parseWorkspaces()
+	r.identifiers = r.parseIdentifiers()
 
 	return r
 }
 
-func (f *File) readPath(p *yaml.Path, v interface{}) error {
-	node, err := p.FilterFile(f.ast)
+type StringMap = map[string]string
+
+func mustPathString(path string) *yaml.Path {
+	p, err := yaml.PathString(path)
 	if err != nil {
-		return err
+		panic(err)
 	}
-	return yaml.Unmarshal([]byte(node.String()), v)
+	return p
 }
