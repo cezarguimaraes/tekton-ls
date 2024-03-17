@@ -126,6 +126,8 @@ func (f *File) parseIdentifiers() []*identifier {
 				kind:    ident.kind,
 				name:    name,
 				ident:   id,
+				start:   f.OffsetPosition(match[0]),
+				end:     f.OffsetPosition(match[1]),
 				offsets: match,
 			})
 		}

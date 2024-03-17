@@ -5,6 +5,7 @@ import (
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	"github.com/goccy/go-yaml/parser"
+	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
 type Meta interface {
@@ -18,6 +19,8 @@ type reference struct {
 	name string
 
 	offsets []int
+	start   protocol.Position
+	end     protocol.Position
 
 	ident *identifier
 }
@@ -49,6 +52,23 @@ func ParseFile(f file.File) *File {
 	r.identifiers = r.parseIdentifiers()
 
 	return r
+}
+
+func (f *File) findReference(pos protocol.Position) *reference {
+	for _, ref := range f.references {
+		// assuming ref.start.Line = ref.end.Line
+		if ref.start.Line != pos.Line {
+			continue
+		}
+		if pos.Character > ref.end.Character {
+			continue
+		}
+		if pos.Character < ref.start.Character {
+			continue
+		}
+		return &ref
+	}
+	return nil
 }
 
 type StringMap = map[string]string

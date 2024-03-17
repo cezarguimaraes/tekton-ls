@@ -39,6 +39,7 @@ func NewTektonHandler() *TektonHandler {
 		TextDocumentDidOpen:    th.docOpen(),
 		TextDocumentDidChange:  th.docChange(),
 		TextDocumentCompletion: th.docCompletion(),
+		TextDocumentDefinition: th.definition(),
 	}
 	return th
 }
@@ -171,6 +172,25 @@ func (th *TektonHandler) docCompletion() protocol.TextDocumentCompletionFunc {
 		}
 
 		return cs, nil
+	}
+}
+
+func (th *TektonHandler) definition() protocol.TextDocumentDefinitionFunc {
+	return func(context *glsp.Context, params *protocol.DefinitionParams) (any, error) {
+		f := getDoc(th, params.TextDocument)
+		defPos := f.Definition(params.Position)
+		if defPos == nil {
+			return nil, nil
+		}
+
+		loc := protocol.Location{
+			URI: params.TextDocument.URI,
+			Range: protocol.Range{
+				Start: *defPos,
+				End:   *defPos,
+			},
+		}
+		return loc, nil
 	}
 }
 
