@@ -13,3 +13,12 @@ func (f *File) Definition(pos protocol.Position) *protocol.Position {
 		Character: uint32(ipos.Column - 1),
 	}
 }
+
+func (f *File) Hover(pos protocol.Position) *string {
+	ref := f.findReference(pos)
+	if ref == nil || ref.ident == nil {
+		return nil
+	}
+	doc := ref.ident.meta.Documentation()
+	return &doc
+}

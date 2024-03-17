@@ -6,8 +6,6 @@ import (
 	"github.com/cezarguimaraes/tekton-lsp/internal/completion"
 	"github.com/cezarguimaraes/tekton-lsp/internal/file"
 	"github.com/cezarguimaraes/tekton-lsp/internal/tekton"
-	"github.com/cezarguimaraes/tekton-lsp/internal/yaml"
-	"github.com/goccy/go-yaml/parser"
 	"github.com/tliron/commonlog"
 	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
@@ -196,23 +194,16 @@ func (th *TektonHandler) definition() protocol.TextDocumentDefinitionFunc {
 
 func (th *TektonHandler) hover() protocol.TextDocumentHoverFunc {
 	return func(context *glsp.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
-		f, err := parser.ParseBytes(getDoc(th, params.TextDocument).Bytes(), parser.ParseComments)
-		if err != nil {
-			return nil, err
+		f := getDoc(th, params.TextDocument)
+		doc := f.Hover(params.Position)
+		if doc == nil {
+			return nil, nil
 		}
 
-		node := yaml.FindNode(f.Docs[0], int(params.Position.Line)+1, int(params.Position.Character)+1)
-		th.Log.Debug("hover pos", "line", int(params.Position.Line)+1, "character", int(params.Position.Character)+1)
-		s := "<null>"
-		if node != nil {
-			s = node.String()
-		}
-
-		th.Log.Info("hover called")
 		hv := &protocol.Hover{
 			Contents: protocol.MarkupContent{
 				Kind:  protocol.MarkupKindMarkdown,
-				Value: fmt.Sprintf("test\n```yaml\n%s\n```", s),
+				Value: *doc,
 			},
 		}
 		return hv, nil
