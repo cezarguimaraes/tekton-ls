@@ -18,6 +18,10 @@ func (f File) GetLine(line uint32) string {
 	return lines[line]
 }
 
+func (f File) Bytes() []byte {
+	return []byte(string(f))
+}
+
 func (f File) getContext(pos protocol.Position, c int) string {
 	line := f.GetLine(pos.Line)
 	from := max(0, int(pos.Character)-c)

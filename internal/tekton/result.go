@@ -7,6 +7,8 @@ import (
 	"github.com/cezarguimaraes/tekton-lsp/internal/file"
 )
 
+var resultsPath = mustPathString("$.spec.results[*]")
+
 type Result StringMap
 
 func (p Result) Name() string {
@@ -34,4 +36,18 @@ func Results(file file.File) ([]Meta, error) {
 		meta = append(meta, p)
 	}
 	return meta, err
+}
+
+func (f *File) parseResults() error {
+	var results []Result
+	err := f.readPath(parametersPath, &results)
+	if err != nil {
+		return err
+	}
+	var meta []Meta
+	for _, p := range results {
+		meta = append(meta, p)
+	}
+	f.results = meta
+	return nil
 }

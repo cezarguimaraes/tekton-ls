@@ -7,6 +7,8 @@ import (
 	"github.com/cezarguimaraes/tekton-lsp/internal/file"
 )
 
+var workspacesPath = mustPathString("$.spec.workspaces[*]")
+
 type Workspace StringMap
 
 func (p Workspace) Name() string {
@@ -34,4 +36,18 @@ func Workspaces(file file.File) ([]Meta, error) {
 		meta = append(meta, p)
 	}
 	return meta, err
+}
+
+func (f *File) parseWorkspaces() error {
+	var workspaces []Workspace
+	err := f.readPath(workspacesPath, &workspaces)
+	if err != nil {
+		return err
+	}
+	var meta []Meta
+	for _, p := range workspaces {
+		meta = append(meta, p)
+	}
+	f.workspaces = meta
+	return nil
 }

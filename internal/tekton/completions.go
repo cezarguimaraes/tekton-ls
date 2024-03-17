@@ -1,31 +1,28 @@
 package tekton
 
 import (
-	"errors"
 	"fmt"
 
-	"github.com/cezarguimaraes/tekton-lsp/internal/file"
-	"github.com/goccy/go-yaml"
 	"github.com/tliron/commonlog"
 )
 
 type completion struct {
-	listFunc func(file.File) ([]Meta, error)
+	listFunc func(File) []Meta
 	format   string
 }
 
 var completions = []completion{
 	{
 		// TODO: object params
-		listFunc: Parameters,
+		listFunc: func(f File) []Meta { return f.parameters },
 		format:   "$(params.%s)",
 	},
 	{
-		listFunc: Results,
+		listFunc: func(f File) []Meta { return f.results },
 		format:   "$(results.%s.path)",
 	},
 	{
-		listFunc: Workspaces,
+		listFunc: func(f File) []Meta { return f.workspaces },
 		format:   "$(workspaces.%s.path)",
 	},
 }
@@ -39,14 +36,14 @@ func (c CompletionCandidate) String() string {
 	return c.Text
 }
 
-func Completions(log commonlog.Logger, file file.File) []fmt.Stringer {
+func (f File) Completions(log commonlog.Logger) []fmt.Stringer {
 	cs := []fmt.Stringer{}
+	if f.parseError != nil {
+		return cs
+	}
+
 	for _, compl := range completions {
-		ls, err := compl.listFunc(file)
-		if err != nil && !errors.Is(err, yaml.ErrNotFoundNode) {
-			log.Error("error listing completions", "error", err)
-			continue
-		}
+		ls := compl.listFunc(f)
 		for _, cand := range ls {
 			cs = append(cs, CompletionCandidate{
 				Text:  fmt.Sprintf(compl.format, cand.Name()),

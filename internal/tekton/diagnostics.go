@@ -1,13 +1,10 @@
 package tekton
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
 
-	"github.com/cezarguimaraes/tekton-lsp/internal/file"
-	"github.com/goccy/go-yaml"
 	"github.com/tliron/commonlog"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
@@ -15,7 +12,7 @@ import (
 type diag struct {
 	label    string
 	regexp   *regexp.Regexp
-	listFunc func(file.File) ([]Meta, error)
+	listFunc func(File) []Meta
 }
 
 var diags = []diag{
@@ -23,51 +20,50 @@ var diags = []diag{
 		// TODO: validate object params
 		label:    "parameter",
 		regexp:   regexp.MustCompile(`\$\(params\.(.*?)\)`),
-		listFunc: Parameters,
+		listFunc: func(f File) []Meta { return f.parameters },
 	},
 	{
 		// TODO: validate .path
 		label:    "result",
 		regexp:   regexp.MustCompile(`\$\(results\.(.*?)\.(.*?)\)`),
-		listFunc: Results,
+		listFunc: func(f File) []Meta { return f.results },
 	},
 	{
 		// TODO: validate .path
-		label:    "workspaces",
+		label:    "workspace",
 		regexp:   regexp.MustCompile(`\$\(workspaces\.(.*?)\.(.*?)\)`),
-		listFunc: Workspaces,
+		listFunc: func(f File) []Meta { return f.workspaces },
 	},
 }
 
-func Diagnostics(log commonlog.Logger, file file.File) ([]protocol.Diagnostic, error) {
+func (f File) Diagnostics(log commonlog.Logger) ([]protocol.Diagnostic, error) {
 	rs := make([]protocol.Diagnostic, 0)
-	for _, diag := range diags {
-		ls, err := diag.listFunc(file)
 
-		if err != nil && !errors.Is(err, yaml.ErrNotFoundNode) {
-			if d := syntaxErrorDiagnostic(err); d != nil {
-				rs = append(rs, *d)
-				break
-			}
-			log.Error("error listing references", "label", diag.label, "error", err)
-			continue
+	if f.parseError != nil {
+		if d := syntaxErrorDiagnostic(f.parseError); d != nil {
+			rs = append(rs, *d)
+			return rs, nil
 		}
+	}
+
+	for _, diag := range diags {
+		ls := diag.listFunc(f)
 
 		m := mapFromSlice(ls)
 
-		refs := diag.regexp.FindAllSubmatchIndex([]byte(file), 1000)
+		refs := diag.regexp.FindAllSubmatchIndex(f.Bytes(), 1000)
 		sev := protocol.DiagnosticSeverityError
 		src := "validation"
 
 		for _, match := range refs {
-			name := string(file)[match[2]:match[3]]
+			name := string(f.Bytes())[match[2]:match[3]]
 			if _, ok := m[name]; ok {
 				continue
 			}
 			rs = append(rs, protocol.Diagnostic{
 				Range: protocol.Range{
-					Start: file.OffsetPosition(match[0]),
-					End:   file.OffsetPosition(match[1]),
+					Start: f.OffsetPosition(match[0]),
+					End:   f.OffsetPosition(match[1]),
 				},
 				Message:  fmt.Sprintf("unknown %s %s", diag.label, name),
 				Severity: &sev,
