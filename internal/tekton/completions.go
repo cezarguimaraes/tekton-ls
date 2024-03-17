@@ -2,8 +2,6 @@ package tekton
 
 import (
 	"fmt"
-
-	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
 type CompletionCandidate struct {
@@ -13,15 +11,6 @@ type CompletionCandidate struct {
 
 func (c CompletionCandidate) String() string {
 	return c.Text
-}
-
-func (f *File) Completions(pos protocol.Position) []fmt.Stringer {
-	res := []fmt.Stringer{}
-	if f.parseError != nil {
-		return res
-	}
-	// TODO: find doc for pos
-	return res
 }
 
 func (d *Document) completions() []fmt.Stringer {

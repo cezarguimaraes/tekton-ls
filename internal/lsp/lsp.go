@@ -69,10 +69,7 @@ func (th *TektonHandler) getDoc(uri string) *tekton.File {
 }
 
 func (th *TektonHandler) publishDiagnostics(context *glsp.Context, doc protocol.VersionedTextDocumentIdentifier) error {
-	dgs, err := getDoc(th, doc).Diagnostics()
-	if err != nil {
-		return err
-	}
+	dgs := getDoc(th, doc).Diagnostics()
 
 	ver := uint32(doc.Version)
 	context.Notify(

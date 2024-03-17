@@ -9,14 +9,10 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-var (
-	singleDoc []byte
-	multiDoc  []byte
-)
+var singleDoc []byte
 
 func init() {
 	singleDoc, _ = os.ReadFile("./testdata/single.yaml")
-	multiDoc, _ = os.ReadFile("./testdata/multi.yaml")
 }
 
 func TestParseIdentifiers(t *testing.T) {

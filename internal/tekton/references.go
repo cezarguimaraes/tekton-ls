@@ -2,11 +2,6 @@ package tekton
 
 import protocol "github.com/tliron/glsp/protocol_3_16"
 
-func (f *File) FindReferences(pos protocol.Position) []protocol.Range {
-	// TODO
-	return nil
-}
-
 func (d *Document) findReferences(pos protocol.Position) []protocol.Range {
 	for _, id := range d.identifiers {
 		if inRange(pos, id.prange) {

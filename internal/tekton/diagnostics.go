@@ -8,19 +8,7 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-func (f *File) Diagnostics() ([]protocol.Diagnostic, error) {
-	rs := make([]protocol.Diagnostic, 0)
-	if f.parseError != nil {
-		if d := syntaxErrorDiagnostic(f.parseError); d != nil {
-			rs = append(rs, *d)
-			return rs, nil
-		}
-	}
-	// TODO
-	return nil, nil
-}
-
-func (d *Document) diagnostics() ([]protocol.Diagnostic, error) {
+func (d *Document) diagnostics() []protocol.Diagnostic {
 	rs := make([]protocol.Diagnostic, 0)
 
 	for _, ref := range d.references {
@@ -42,7 +30,7 @@ func (d *Document) diagnostics() ([]protocol.Diagnostic, error) {
 		})
 	}
 
-	return rs, nil
+	return rs
 }
 
 var syntaxErrorRegexp = regexp.MustCompile(`(?s)^\[(\d+):(\d+)\] (.+)`)

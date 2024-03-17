@@ -1,6 +1,8 @@
 package tekton
 
 import (
+	"fmt"
+
 	"github.com/cezarguimaraes/tekton-lsp/internal/file"
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
@@ -70,21 +72,47 @@ func ParseFile(f file.File) *File {
 	return r
 }
 
-func (d *Document) findDefinition(pos protocol.Position) *reference {
-	for _, ref := range d.references {
-		// assuming ref.start.Line = ref.end.Line
-		if ref.start.Line != pos.Line {
-			continue
+func (f *File) findDoc(pos protocol.Position) *Document {
+	for _, d := range f.docs {
+		if d.ast.End == nil || pos.Line < uint32(d.ast.End.Position.Line) {
+			return d
 		}
-		if pos.Character > ref.end.Character {
-			continue
-		}
-		if pos.Character < ref.start.Character {
-			continue
-		}
-		return &ref
 	}
 	return nil
+}
+
+func (f *File) Hover(pos protocol.Position) *string {
+	return f.findDoc(pos).hover(pos)
+}
+
+func (f *File) Definition(pos protocol.Position) *protocol.Range {
+	return f.findDoc(pos).definition(pos)
+}
+
+func (f *File) FindReferences(pos protocol.Position) []protocol.Range {
+	return f.findDoc(pos).findReferences(pos)
+}
+
+func (f *File) Completions(pos protocol.Position) []fmt.Stringer {
+	res := []fmt.Stringer{}
+	if f.parseError != nil {
+		return res
+	}
+	return f.findDoc(pos).completions()
+}
+
+func (f *File) Diagnostics() []protocol.Diagnostic {
+	rs := make([]protocol.Diagnostic, 0)
+	if f.parseError != nil {
+		if d := syntaxErrorDiagnostic(f.parseError); d != nil {
+			rs = append(rs, *d)
+			return rs
+		}
+	}
+	for _, d := range f.docs {
+		rs = append(rs, d.diagnostics()...)
+	}
+	return rs
 }
 
 type StringMap = map[string]string
