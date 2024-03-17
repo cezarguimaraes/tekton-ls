@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 
 	"github.com/cezarguimaraes/tekton-lsp/internal/file"
 	"github.com/goccy/go-yaml"
@@ -42,10 +43,16 @@ func Diagnostics(log commonlog.Logger, file file.File) ([]protocol.Diagnostic, e
 	rs := make([]protocol.Diagnostic, 0)
 	for _, diag := range diags {
 		ls, err := diag.listFunc(file)
+
 		if err != nil && !errors.Is(err, yaml.ErrNotFoundNode) {
+			if d := syntaxErrorDiagnostic(err); d != nil {
+				rs = append(rs, *d)
+				break
+			}
 			log.Error("error listing references", "label", diag.label, "error", err)
 			continue
 		}
+
 		m := mapFromSlice(ls)
 
 		refs := diag.regexp.FindAllSubmatchIndex([]byte(file), 1000)
@@ -69,6 +76,39 @@ func Diagnostics(log commonlog.Logger, file file.File) ([]protocol.Diagnostic, e
 		}
 	}
 	return rs, nil
+}
+
+var syntaxErrorRegexp = regexp.MustCompile(`(?s)^\[(\d+):(\d+)\] (.+)`)
+
+// hack to extract error position from goccy/go-yaml unexported syntaxError
+func syntaxErrorDiagnostic(err error) *protocol.Diagnostic {
+	ms := syntaxErrorRegexp.FindStringSubmatch(err.Error())
+	if len(ms) != 4 {
+		return nil
+	}
+	line, err := strconv.Atoi(ms[1])
+	if err != nil {
+		return nil
+	}
+	col, err := strconv.Atoi(ms[2])
+	if err != nil {
+		return nil
+	}
+	pos := protocol.Position{
+		Line:      uint32(line - 1),
+		Character: uint32(col - 1),
+	}
+	sev := protocol.DiagnosticSeverityError
+	src := "syntax"
+	return &protocol.Diagnostic{
+		Range: protocol.Range{
+			Start: pos,
+			End:   pos,
+		},
+		Message:  ms[3],
+		Severity: &sev,
+		Source:   &src,
+	}
 }
 
 func mapFromSlice(s []Meta) map[string]struct{} {
