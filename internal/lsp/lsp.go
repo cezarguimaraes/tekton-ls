@@ -3,16 +3,16 @@ package lsp
 import (
 	"fmt"
 
-	"github.com/cezarguimaraes/tekton-lsp/internal/completion"
-	"github.com/cezarguimaraes/tekton-lsp/internal/file"
-	"github.com/cezarguimaraes/tekton-lsp/internal/tekton"
+	"github.com/cezarguimaraes/tekton-ls/internal/completion"
+	"github.com/cezarguimaraes/tekton-ls/internal/file"
+	"github.com/cezarguimaraes/tekton-ls/internal/tekton"
 	"github.com/tliron/commonlog"
 	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
 const (
-	lsName  = "tekton-lsp"
+	lsName  = "tekton-ls"
 	version = "0.0.1"
 )
 

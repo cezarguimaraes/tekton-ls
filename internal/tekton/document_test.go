@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cezarguimaraes/tekton-lsp/internal/file"
+	"github.com/cezarguimaraes/tekton-ls/internal/file"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 

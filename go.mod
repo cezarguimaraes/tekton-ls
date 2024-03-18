@@ -1,4 +1,4 @@
-module github.com/cezarguimaraes/tekton-lsp
+module github.com/cezarguimaraes/tekton-ls
 
 go 1.22.1
 

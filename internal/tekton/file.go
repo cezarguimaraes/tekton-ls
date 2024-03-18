@@ -3,7 +3,7 @@ package tekton
 import (
 	"fmt"
 
-	"github.com/cezarguimaraes/tekton-lsp/internal/file"
+	"github.com/cezarguimaraes/tekton-ls/internal/file"
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	"github.com/goccy/go-yaml/parser"

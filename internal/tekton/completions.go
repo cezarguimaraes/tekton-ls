@@ -3,7 +3,7 @@ package tekton
 import (
 	"fmt"
 
-	"github.com/cezarguimaraes/tekton-lsp/internal/yaml"
+	"github.com/cezarguimaraes/tekton-ls/internal/yaml"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 

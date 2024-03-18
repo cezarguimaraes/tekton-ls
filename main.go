@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/cezarguimaraes/tekton-lsp/internal/lsp"
+	"github.com/cezarguimaraes/tekton-ls/internal/lsp"
 	"github.com/tliron/commonlog"
 	"github.com/tliron/glsp/server"
 
