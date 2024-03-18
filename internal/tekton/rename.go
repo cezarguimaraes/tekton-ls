@@ -6,8 +6,12 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-func (d *Document) prepareRename(pos protocol.Position) bool {
-	return d.findIdentifier(pos) != nil
+func (d *Document) prepareRename(pos protocol.Position) *protocol.Range {
+	id := d.findIdentifier(pos)
+	if id == nil {
+		return nil
+	}
+	return &id.prange
 }
 
 func (d *Document) rename(

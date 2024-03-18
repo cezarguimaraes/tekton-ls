@@ -252,10 +252,11 @@ func (th *TektonHandler) rename() protocol.TextDocumentRenameFunc {
 func (th *TektonHandler) prepareRename() protocol.TextDocumentPrepareRenameFunc {
 	return func(context *glsp.Context, params *protocol.PrepareRenameParams) (any, error) {
 		f := getDoc(th, params.TextDocument)
-		if f.PrepareRename(params.Position) {
-			return &protocol.DefaultBehavior{DefaultBehavior: true}, nil
+		r := f.PrepareRename(params.Position)
+		if r == nil {
+			return nil, nil
 		}
-		return nil, nil
+		return r, nil
 	}
 }
 

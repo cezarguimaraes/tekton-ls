@@ -105,7 +105,7 @@ func (f *File) Rename(pos protocol.Position, newName string) ([]protocol.TextEdi
 	return f.findDoc(pos).rename(pos, newName)
 }
 
-func (f *File) PrepareRename(pos protocol.Position) bool {
+func (f *File) PrepareRename(pos protocol.Position) *protocol.Range {
 	return f.findDoc(pos).prepareRename(pos)
 }
 
