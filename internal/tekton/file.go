@@ -10,10 +10,15 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
+type completion struct {
+	context *yaml.Path
+	text    string
+}
+
 type Meta interface {
 	Name() string
 	Documentation() string
-	Completions() []string
+	Completions() []completion
 }
 
 type reference struct {
@@ -122,7 +127,7 @@ func (f *File) Completions(pos protocol.Position) []fmt.Stringer {
 	if f.parseError != nil {
 		return res
 	}
-	return f.findDoc(pos).completions()
+	return f.findDoc(pos).completions(pos)
 }
 
 func (f *File) Diagnostics() []protocol.Diagnostic {

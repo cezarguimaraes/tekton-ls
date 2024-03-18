@@ -35,7 +35,7 @@ func (f File) HasContext(pos protocol.Position, ctx string) bool {
 func (f File) FindPrevious(c string, pos protocol.Position) int {
 	line := f.GetLine(pos.Line)
 	n := min(len(line), int(pos.Character))
-	return strings.LastIndex(line[0:n], c)
+	return strings.LastIndexAny(line[0:n], c)
 }
 
 // TODO: optimize

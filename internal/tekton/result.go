@@ -6,8 +6,14 @@ import (
 
 type Result StringMap
 
-func (p Result) Completions() []string {
-	return []string{fmt.Sprintf("$(results.%s.path)", p.Name())}
+var _ Meta = Result{}
+
+func (p Result) Completions() []completion {
+	return []completion{
+		{
+			text: fmt.Sprintf("$(results.%s.path)", p.Name()),
+		},
+	}
 }
 
 func (p Result) Name() string {

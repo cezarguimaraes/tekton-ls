@@ -229,7 +229,6 @@ func (d *Document) parseIdentifiers() {
 			// var vs []map[string]interface{}
 			switch n := node.(type) {
 			case *ast.SequenceNode:
-				fmt.Println(n.Type())
 				for taskId, v := range n.Values {
 					if v == nil {
 						// filter can leave null values

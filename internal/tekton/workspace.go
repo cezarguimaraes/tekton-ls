@@ -6,8 +6,18 @@ import (
 
 type Workspace StringMap
 
-func (p Workspace) Completions() []string {
-	return []string{fmt.Sprintf("$(workspaces.%s.path)", p.Name())}
+var _ Meta = Workspace{}
+
+func (p Workspace) Completions() []completion {
+	return []completion{
+		{
+			text: fmt.Sprintf("$(workspaces.%s.path)", p.Name()),
+		},
+		{
+			text:    p.Name(),
+			context: mustPathString("$.spec.tasks[*].workspaces[*].workspace"),
+		},
+	}
 }
 
 func (p Workspace) Name() string {

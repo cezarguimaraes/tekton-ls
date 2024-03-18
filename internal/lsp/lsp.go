@@ -146,34 +146,39 @@ func (th *TektonHandler) docCompletion() protocol.TextDocumentCompletionFunc {
 		var cs []protocol.CompletionItem
 		f := getDoc(th, params.TextDocument)
 
-		start := f.FindPrevious("$", params.Position)
-		if start != -1 {
-			line := f.GetLine(params.Position.Line)
-			query := line[start:min(len(line), int(params.Position.Character))]
+		start := f.FindPrevious("$ ", params.Position)
+		if start == -1 {
+			return nil, nil
+		}
+		line := f.GetLine(params.Position.Line)
+		if line[start] != '$' {
+			// don't include whitespace for contextual queries
+			start++
+		}
+		query := line[start:min(len(line), int(params.Position.Character))]
 
-			candidates := f.Completions(params.Position)
+		candidates := f.Completions(params.Position)
 
-			matches := completion.Solve(query, candidates)
-			kind := protocol.CompletionItemKindProperty
-			for idx, m := range matches {
-				preselect := idx == 0
-				cs = append(cs, protocol.CompletionItem{
-					Label:     m.String(),
-					Kind:      &kind,
-					Preselect: &preselect,
-					Documentation: protocol.MarkupContent{
-						Kind:  protocol.MarkupKindMarkdown,
-						Value: m.(tekton.CompletionCandidate).Value.Documentation(),
+		matches := completion.Solve(query, candidates)
+		kind := protocol.CompletionItemKindProperty
+		for idx, m := range matches {
+			preselect := idx == 0
+			cs = append(cs, protocol.CompletionItem{
+				Label:     m.String(),
+				Kind:      &kind,
+				Preselect: &preselect,
+				Documentation: protocol.MarkupContent{
+					Kind:  protocol.MarkupKindMarkdown,
+					Value: m.(tekton.CompletionCandidate).Value.Documentation(),
+				},
+				TextEdit: protocol.TextEdit{
+					NewText: m.String(),
+					Range: protocol.Range{
+						Start: protocol.Position{Line: params.Position.Line, Character: uint32(start)},
+						End:   protocol.Position{Line: params.Position.Line, Character: params.Position.Character},
 					},
-					TextEdit: protocol.TextEdit{
-						NewText: m.String(),
-						Range: protocol.Range{
-							Start: protocol.Position{Line: params.Position.Line, Character: uint32(start)},
-							End:   protocol.Position{Line: params.Position.Line, Character: params.Position.Character},
-						},
-					},
-				})
-			}
+				},
+			})
 		}
 
 		return cs, nil

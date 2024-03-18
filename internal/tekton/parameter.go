@@ -8,8 +8,12 @@ type Parameter StringMap
 
 var _ Meta = Parameter{}
 
-func (p Parameter) Completions() []string {
-	return []string{fmt.Sprintf("$(params.%s)", p.Name())}
+func (p Parameter) Completions() []completion {
+	return []completion{
+		{
+			text: fmt.Sprintf("$(params.%s)", p.Name()),
+		},
+	}
 }
 
 func (p Parameter) Name() string {
