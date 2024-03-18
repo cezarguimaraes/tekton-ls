@@ -90,7 +90,7 @@ func (f *File) findDoc(pos protocol.Position) *Document {
 	for _, d := range f.docs {
 		st := d.OffsetPosition(d.offset)
 		en := d.OffsetPosition(d.offset + d.size)
-		if inRange(pos, protocol.Range{st, en}) {
+		if inRange(pos, protocol.Range{Start: st, End: en}) {
 			return d
 		}
 	}
@@ -99,6 +99,14 @@ func (f *File) findDoc(pos protocol.Position) *Document {
 
 func (f *File) Hover(pos protocol.Position) *string {
 	return f.findDoc(pos).hover(pos)
+}
+
+func (f *File) Rename(pos protocol.Position, newName string) ([]protocol.TextEdit, error) {
+	return f.findDoc(pos).rename(pos, newName)
+}
+
+func (f *File) PrepareRename(pos protocol.Position) bool {
+	return f.findDoc(pos).prepareRename(pos)
 }
 
 func (f *File) Definition(pos protocol.Position) *protocol.Range {

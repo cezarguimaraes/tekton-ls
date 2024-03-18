@@ -30,7 +30,7 @@ var singleTCs = []struct {
 		refs: []protocol.Range{
 			{
 				Start: protocol.Position{Line: 21, Character: 15},
-				End:   protocol.Position{Line: 21, Character: 27},
+				End:   protocol.Position{Line: 21, Character: 28},
 			},
 		},
 	},
@@ -49,7 +49,7 @@ var singleTCs = []struct {
 		refs: []protocol.Range{
 			{
 				Start: protocol.Position{Line: 24, Character: 20},
-				End:   protocol.Position{Line: 24, Character: 32},
+				End:   protocol.Position{Line: 24, Character: 33},
 			},
 		},
 	},
@@ -61,15 +61,15 @@ var singleTCs = []struct {
 		refs: []protocol.Range{
 			{
 				Start: protocol.Position{Line: 25, Character: 8},
-				End:   protocol.Position{Line: 25, Character: 26},
+				End:   protocol.Position{Line: 25, Character: 27},
 			},
 			{
 				Start: protocol.Position{Line: 26, Character: 8},
-				End:   protocol.Position{Line: 26, Character: 26},
+				End:   protocol.Position{Line: 26, Character: 27},
 			},
 			{
 				Start: protocol.Position{Line: 27, Character: 8},
-				End:   protocol.Position{Line: 27, Character: 26},
+				End:   protocol.Position{Line: 27, Character: 27},
 			},
 		},
 	},
@@ -81,7 +81,7 @@ var singleTCs = []struct {
 		refs: []protocol.Range{
 			{
 				Start: protocol.Position{Line: 28, Character: 8},
-				End:   protocol.Position{Line: 28, Character: 30},
+				End:   protocol.Position{Line: 28, Character: 31},
 			},
 		},
 	},
@@ -96,6 +96,7 @@ func TestDocParseIdentifiers(t *testing.T) {
 				len(singleTCs),
 			)
 		}
+		// TODO: test ident.prange
 		id := single.docs[0].identifiers[i]
 		if id.kind != exp.kind {
 			t.Errorf("id[%d].kind: got %s, want %s", i, id.kind, exp.kind)
@@ -109,8 +110,9 @@ func TestDocParseIdentifiers(t *testing.T) {
 		if got := id.definition.GetToken().Position.Column; got != exp.defCol {
 			t.Errorf("id[%d].definition.column: got %d, want %d", i, got, exp.defCol)
 		}
-		if !reflect.DeepEqual(id.references, exp.refs) {
-			t.Errorf("id[%d].references:\ngot %v\nwant %v", i, id.references, exp.refs)
+		gotRefs := wholeReferences(id)
+		if !reflect.DeepEqual(gotRefs, exp.refs) {
+			t.Errorf("id[%d].references:\ngot %v\nwant %v", i, gotRefs, exp.refs)
 		}
 	}
 }
@@ -124,24 +126,24 @@ func TestDocFindReferences(t *testing.T) {
 		{
 			pos: protocol.Position{
 				Line:      6,
-				Character: 10,
+				Character: 12,
 			},
 			refs: []protocol.Range{
 				{
 					Start: protocol.Position{Line: 21, Character: 15},
-					End:   protocol.Position{Line: 21, Character: 27},
+					End:   protocol.Position{Line: 21, Character: 28},
 				},
 			},
 		},
 		{
 			pos: protocol.Position{
 				Line:      11,
-				Character: 9,
+				Character: 8,
 			},
 			refs: []protocol.Range{
 				{
 					Start: protocol.Position{Line: 24, Character: 20},
-					End:   protocol.Position{Line: 24, Character: 32},
+					End:   protocol.Position{Line: 24, Character: 33},
 				},
 			},
 		},

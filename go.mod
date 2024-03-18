@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/goccy/go-yaml v1.11.3
 	github.com/tliron/commonlog v0.2.15
-	github.com/tliron/glsp v0.2.1
+	github.com/tliron/glsp v0.2.2-0.20240309182338-ab78d718ad7d
 )
 
 require (

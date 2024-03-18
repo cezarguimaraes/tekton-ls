@@ -67,3 +67,7 @@ func (f File) LineOffset(line int) int {
 	}
 	return offset
 }
+
+func (f File) PositionOffset(pos protocol.Position) int {
+	return f.LineOffset(int(pos.Line)) + int(pos.Character)
+}

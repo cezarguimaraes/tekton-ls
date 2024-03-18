@@ -29,17 +29,18 @@ func NewTektonHandler() *TektonHandler {
 		files: make(map[string]*tekton.File),
 	}
 	th.Handler = protocol.Handler{
-		Initialize:             th.initialize(),
-		Initialized:            th.initialized(),
-		Shutdown:               th.shutdown(),
-		SetTrace:               th.setTrace(),
-		TextDocumentHover:      th.hover(),
-		TextDocumentDidOpen:    th.docOpen(),
-		TextDocumentDidChange:  th.docChange(),
-		TextDocumentCompletion: th.docCompletion(),
-		TextDocumentDefinition: th.definition(),
-		TextDocumentReferences: th.references(),
-		TextDocumentRename:     th.rename(),
+		Initialize:                th.initialize(),
+		Initialized:               th.initialized(),
+		Shutdown:                  th.shutdown(),
+		SetTrace:                  th.setTrace(),
+		TextDocumentHover:         th.hover(),
+		TextDocumentDidOpen:       th.docOpen(),
+		TextDocumentDidChange:     th.docChange(),
+		TextDocumentCompletion:    th.docCompletion(),
+		TextDocumentDefinition:    th.definition(),
+		TextDocumentReferences:    th.references(),
+		TextDocumentPrepareRename: th.prepareRename(),
+		TextDocumentRename:        th.rename(),
 	}
 	return th
 }
@@ -90,6 +91,13 @@ func (th *TektonHandler) initialize() protocol.InitializeFunc {
 
 		value := protocol.TextDocumentSyncKindFull
 		capabilities.TextDocumentSync.(*protocol.TextDocumentSyncOptions).Change = &value
+
+		if *params.Capabilities.TextDocument.Rename.PrepareSupport {
+			t := true
+			capabilities.RenameProvider = protocol.RenameOptions{
+				PrepareProvider: &t,
+			}
+		}
 
 		capabilities.CompletionProvider.TriggerCharacters = []string{
 			".",
@@ -228,6 +236,25 @@ func (th *TektonHandler) references() protocol.TextDocumentReferencesFunc {
 
 func (th *TektonHandler) rename() protocol.TextDocumentRenameFunc {
 	return func(context *glsp.Context, params *protocol.RenameParams) (*protocol.WorkspaceEdit, error) {
+		f := getDoc(th, params.TextDocument)
+		es, err := f.Rename(params.Position, params.NewName)
+		if err != nil {
+			return nil, err
+		}
+		return &protocol.WorkspaceEdit{
+			Changes: map[string][]protocol.TextEdit{
+				params.TextDocument.URI: es,
+			},
+		}, nil
+	}
+}
+
+func (th *TektonHandler) prepareRename() protocol.TextDocumentPrepareRenameFunc {
+	return func(context *glsp.Context, params *protocol.PrepareRenameParams) (any, error) {
+		f := getDoc(th, params.TextDocument)
+		if f.PrepareRename(params.Position) {
+			return &protocol.DefaultBehavior{DefaultBehavior: true}, nil
+		}
 		return nil, nil
 	}
 }

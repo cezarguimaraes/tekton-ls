@@ -59,8 +59,9 @@ func TestFileParseIdentifiers(t *testing.T) {
 					},
 				})
 			}
-			if !reflect.DeepEqual(id.references, wantRefs) {
-				t.Errorf("doc[%d].id[%d].references:\ngot %v\nwant %v", docId, i, id.references, wantRefs)
+			gotRefs := wholeReferences(id)
+			if !reflect.DeepEqual(gotRefs, wantRefs) {
+				t.Errorf("doc[%d].id[%d].references:\ngot %v\nwant %v", docId, i, gotRefs, wantRefs)
 			}
 		}
 	}
@@ -80,19 +81,19 @@ func TestFileFindReferences(t *testing.T) {
 			refs: []protocol.Range{
 				{
 					Start: protocol.Position{Line: 21, Character: 15},
-					End:   protocol.Position{Line: 21, Character: 27},
+					End:   protocol.Position{Line: 21, Character: 28},
 				},
 			},
 		},
 		{
 			pos: protocol.Position{
 				Line:      11,
-				Character: 8, // this works at character 9 (newline) but not for the second file
+				Character: 8,
 			},
 			refs: []protocol.Range{
 				{
 					Start: protocol.Position{Line: 24, Character: 20},
-					End:   protocol.Position{Line: 24, Character: 32},
+					End:   protocol.Position{Line: 24, Character: 33},
 				},
 			},
 		},
@@ -104,7 +105,7 @@ func TestFileFindReferences(t *testing.T) {
 			refs: []protocol.Range{
 				{
 					Start: protocol.Position{Line: 51, Character: 15},
-					End:   protocol.Position{Line: 51, Character: 27},
+					End:   protocol.Position{Line: 51, Character: 28},
 				},
 			},
 		},
@@ -116,7 +117,7 @@ func TestFileFindReferences(t *testing.T) {
 			refs: []protocol.Range{
 				{
 					Start: protocol.Position{Line: 54, Character: 20},
-					End:   protocol.Position{Line: 54, Character: 32},
+					End:   protocol.Position{Line: 54, Character: 33},
 				},
 			},
 		},

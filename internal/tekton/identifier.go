@@ -35,7 +35,7 @@ type identifier struct {
 	meta       Meta
 	definition ast.Node
 	prange     protocol.Range
-	references []protocol.Range
+	references [][]protocol.Range
 }
 
 var identifiers = []struct {
@@ -107,17 +107,21 @@ func (d *Document) parseIdentifiers() {
 				fmt.Sprintf(ident.pathFormat, idx),
 			).FilterNode(d.ast.Body)
 
+			start := protocol.Position{
+				Line:      uint32(def.GetToken().Position.Line - 1),
+				Character: uint32(def.GetToken().Position.Column - 1),
+			}
 			id := &identifier{
 				kind:       ident.kind,
 				meta:       ident.meta(m),
 				definition: def,
 				prange: protocol.Range{
-					Start: protocol.Position{
-						Line:      uint32(def.GetToken().Position.Line - 1),
-						Character: uint32(def.GetToken().Position.Column - 1),
-					},
+					Start: start,
+					// end is calculated in this roundabount way due to
+					// inconsistency of Token.Position.Offset for
+					// string token
 					End: d.OffsetPosition(
-						def.GetToken().Position.Offset + len(def.String()),
+						d.PositionOffset(start) + len(def.String()),
 					),
 				},
 			}
@@ -132,16 +136,22 @@ func (d *Document) parseIdentifiers() {
 			name := string(d.Bytes())[match[2]:match[3]]
 			id, _ := identMap[name]
 
-			if match[0] < d.offset || match[1] >= d.offset+d.size {
+			if match[0] < d.offset || match[1] > d.offset+d.size {
 				continue
 			}
 
 			start := d.OffsetPosition(match[0])
-			end := d.OffsetPosition(match[1] - 1)
+			end := d.OffsetPosition(match[1])
 			if id != nil {
-				id.references = append(id.references, protocol.Range{
-					Start: start,
-					End:   end,
+				id.references = append(id.references, []protocol.Range{
+					{
+						Start: start,
+						End:   end,
+					},
+					{
+						Start: d.OffsetPosition(match[2]),
+						End:   d.OffsetPosition(match[3]),
+					},
 				})
 			}
 			d.references = append(d.references, reference{
