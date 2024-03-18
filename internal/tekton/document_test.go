@@ -156,6 +156,27 @@ func TestDocFindReferences(t *testing.T) {
 	}
 }
 
+func TestDocParseIdentifiers_Cases(t *testing.T) {
+	tc := []struct {
+		contents string
+	}{
+		{
+			contents: `apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: task_a
+spec:
+  steps:
+    - name: echo
+      script: ["/bin/sh", "-c", "echo Hello World"]
+`,
+		},
+	}
+	for _, tc := range tc {
+		_ = ParseFile(file.File(tc.contents))
+	}
+}
+
 func TestDocFindDefinition(t *testing.T) {
 	f := ParseFile(file.File(string(singleDoc)))
 	pos := protocol.Position{

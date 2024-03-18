@@ -83,6 +83,10 @@ func (d *Document) parseIdentifiers() {
 			continue
 		}
 
+		if node == nil {
+			continue
+		}
+
 		ms := []StringMap{}
 		if err = yaml.Unmarshal([]byte(node.String()+" "), &ms); err != nil {
 			// apparent go-yaml bug:
