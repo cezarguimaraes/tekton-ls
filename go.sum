@@ -44,8 +44,6 @@ github.com/sourcegraph/jsonrpc2 v0.2.0 h1:KjN/dC4fP6aN9030MZCJs9WQbTOjWHhrtKVpzz
 github.com/sourcegraph/jsonrpc2 v0.2.0/go.mod h1:ZafdZgk/axhT1cvZAPOhw+95nz2I/Ra5qMlU4gTRwIo=
 github.com/tliron/commonlog v0.2.15 h1:vukJpUFLsHapH9kvxfPXZmp4hV3fB1nPMdDsmTJnJCo=
 github.com/tliron/commonlog v0.2.15/go.mod h1:+K652hPl5OyLV7vy85F/YMAVPcQ6yOfXHG6uaX890dM=
-github.com/tliron/glsp v0.2.1 h1:QS1c22YO1EiY0YZmJXca4Eq13gP0HX2vgy2t38gLNJ0=
-github.com/tliron/glsp v0.2.1/go.mod h1:GMVWDNeODxHzmDPvYbYTCs7yHVaEATfYtXiYJ9w1nBg=
 github.com/tliron/glsp v0.2.2-0.20240309182338-ab78d718ad7d h1:vLXYsCOnhX9EJ/dc+RYXwhL6/+tu98+f7qCy2jBJKIk=
 github.com/tliron/glsp v0.2.2-0.20240309182338-ab78d718ad7d/go.mod h1:GMVWDNeODxHzmDPvYbYTCs7yHVaEATfYtXiYJ9w1nBg=
 github.com/tliron/kutil v0.3.18 h1:PWr/yifVkRyTGHjazp/TnN+h0QpLjPLpLr+KGuIehPE=

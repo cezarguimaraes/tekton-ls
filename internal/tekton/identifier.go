@@ -38,12 +38,23 @@ type identifier struct {
 	references [][]protocol.Range
 }
 
+type identRefFunc = func(*Document, map[string]interface{}, ast.Node) []reference
+
+type identRefs struct {
+	path    *yaml.Path
+	handler identRefFunc
+}
+
 var identifiers = []struct {
-	kind           identifierKind
+	kind identifierKind
+	meta func(StringMap) Meta
+
 	listPath       *yaml.Path
 	pathFormat     string
 	referenceRegex *regexp.Regexp
-	meta           func(StringMap) Meta
+
+	// paths where this kind of ident might be referred
+	references []identRefs
 }{
 	{
 		kind:           IdentParam,
@@ -71,7 +82,56 @@ var identifiers = []struct {
 		meta: func(s StringMap) Meta {
 			return Workspace(s)
 		},
+		references: []identRefs{
+			{
+				path: mustPathString("$.spec.tasks[*].workspaces[*]"),
+				handler: func(d *Document, v map[string]interface{}, node ast.Node) []reference {
+					ws, ok := v["workspace"]
+					if !ok {
+						return nil
+					}
+					wsName, ok := ws.(string)
+					if !ok {
+						return nil
+					}
+					// TODO: move elsewhere
+					namePath := mustPathString("$.workspace")
+
+					nameNode, err := namePath.FilterNode(node)
+					if err != nil {
+						panic("should never happen")
+					}
+
+					prange, offsets := d.getNodeRange(nameNode)
+					return []reference{
+						{
+							kind:    IdentWorkspace,
+							name:    wsName,
+							ident:   nil,
+							start:   prange.Start,
+							end:     prange.End,
+							offsets: offsets,
+						},
+					}
+				},
+			},
+		},
 	},
+}
+
+func (d *Document) getNodeRange(node ast.Node) (r protocol.Range, offsets []int) {
+	r.Start = protocol.Position{
+		Line:      uint32(node.GetToken().Position.Line - 1),
+		Character: uint32(node.GetToken().Position.Column - 1),
+	}
+	startOffset := d.PositionOffset(r.Start)
+	endOffset := startOffset + len(node.String())
+	r.End = d.OffsetPosition(endOffset)
+	offsets = []int{
+		startOffset, endOffset, // "whole reference"
+		startOffset, endOffset, // only the name portion
+	}
+	return
 }
 
 func (d *Document) parseIdentifiers() {
@@ -111,23 +171,12 @@ func (d *Document) parseIdentifiers() {
 				fmt.Sprintf(ident.pathFormat, idx),
 			).FilterNode(d.ast.Body)
 
-			start := protocol.Position{
-				Line:      uint32(def.GetToken().Position.Line - 1),
-				Character: uint32(def.GetToken().Position.Column - 1),
-			}
+			defRange, _ := d.getNodeRange(def)
 			id := &identifier{
 				kind:       ident.kind,
 				meta:       ident.meta(m),
 				definition: def,
-				prange: protocol.Range{
-					Start: start,
-					// end is calculated in this roundabount way due to
-					// inconsistency of Token.Position.Offset for
-					// string token
-					End: d.OffsetPosition(
-						d.PositionOffset(start) + len(def.String()),
-					),
-				},
+				prange:     defRange,
 			}
 			ids = append(ids, id)
 
@@ -166,6 +215,59 @@ func (d *Document) parseIdentifiers() {
 				end:     end,
 				offsets: match,
 			})
+		}
+
+		for _, iref := range ident.references {
+			// path, handler
+			node, err := iref.path.FilterNode(d.ast.Body)
+			if err != nil {
+				panic(err)
+			}
+			if node == nil {
+				continue
+			}
+			// var vs []map[string]interface{}
+			switch n := node.(type) {
+			case *ast.SequenceNode:
+				fmt.Println(n.Type())
+				for taskId, v := range n.Values {
+					if v == nil {
+						// filter can leave null values
+						continue
+					}
+					for idx, ws := range v.(*ast.SequenceNode).Values {
+						_ = taskId
+						_ = idx
+						if ws == nil {
+							panic("shouldnt happen")
+						}
+						var v map[string]interface{}
+						_ = yaml.Unmarshal([]byte(ws.String()), &v)
+						refs := iref.handler(d, v, ws)
+						for _, ref := range refs {
+							id, _ := identMap[ref.name]
+							if id != nil {
+								id.references = append(id.references, []protocol.Range{
+									{
+										Start: ref.start,
+										End:   ref.end,
+									},
+									{
+										Start: ref.start,
+										End:   ref.end,
+									},
+								})
+							}
+							ref.ident = id
+							d.references = append(d.references, ref)
+						}
+					}
+				}
+			default:
+				panic("unhandled node type: " + n.Type().String())
+
+			}
+
 		}
 	}
 	d.identifiers = ids

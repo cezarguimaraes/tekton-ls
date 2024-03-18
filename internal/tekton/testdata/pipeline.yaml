@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1 # or tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pipeline
+spec:
+  workspaces:
+    - name: source
+  tasks:
+    - name: gen-code
+      taskRef:
+        name: gen-code
+      workspaces:
+        - name: source
+          workspace: source
+    - name: gen-code-2
+      taskRef:
+        name: gen-code
+      workspaces:
+        - name: source
+          workspace: source2
+        - name: foo
+          workspace: source2
+

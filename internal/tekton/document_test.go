@@ -9,10 +9,11 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-var singleDoc []byte
+var singleDoc, pipelineDoc []byte
 
 func init() {
 	singleDoc, _ = os.ReadFile("./testdata/single.yaml")
+	pipelineDoc, _ = os.ReadFile("./testdata/pipeline.yaml")
 }
 
 var singleTCs = []struct {
@@ -119,11 +120,18 @@ func TestDocParseIdentifiers(t *testing.T) {
 
 func TestDocFindReferences(t *testing.T) {
 	f := ParseFile(file.File(string(singleDoc)))
+	p := ParseFile(file.File(string(pipelineDoc)))
+
+	single := f.docs[0]
+	pipe := p.docs[0]
+
 	tcs := []struct {
+		doc  *Document
 		pos  protocol.Position
 		refs []protocol.Range
 	}{
 		{
+			doc: single,
 			pos: protocol.Position{
 				Line:      6,
 				Character: 12,
@@ -136,6 +144,7 @@ func TestDocFindReferences(t *testing.T) {
 			},
 		},
 		{
+			doc: single,
 			pos: protocol.Position{
 				Line:      11,
 				Character: 8,
@@ -147,9 +156,22 @@ func TestDocFindReferences(t *testing.T) {
 				},
 			},
 		},
+		{
+			doc: pipe,
+			pos: protocol.Position{
+				Line:      6,
+				Character: 12,
+			},
+			refs: []protocol.Range{
+				{
+					Start: protocol.Position{Line: 13, Character: 21},
+					End:   protocol.Position{Line: 13, Character: 27},
+				},
+			},
+		},
 	}
 	for _, tc := range tcs {
-		got := f.docs[0].findReferences(tc.pos)
+		got := tc.doc.findReferences(tc.pos)
 		if !reflect.DeepEqual(got, tc.refs) {
 			t.Errorf("FindReferences(%v):\ngot %v\nwant %v", tc.pos, got, tc.refs)
 		}
