@@ -15,85 +15,85 @@ func init() {
 	singleDoc, _ = os.ReadFile("./testdata/single.yaml")
 }
 
-func TestParseIdentifiers(t *testing.T) {
+var singleTCs = []struct {
+	kind    identifierKind
+	name    string
+	defLine int // 1 based
+	defCol  int // 1 based
+	refs    []protocol.Range
+}{
+	{
+		kind:    IdentParam,
+		name:    "foo",
+		defLine: 7,
+		defCol:  11,
+		refs: []protocol.Range{
+			{
+				Start: protocol.Position{Line: 21, Character: 15},
+				End:   protocol.Position{Line: 21, Character: 27},
+			},
+		},
+	},
+	{
+		kind:    IdentParam,
+		name:    "b",
+		defLine: 10,
+		defCol:  11,
+		refs:    nil,
+	},
+	{
+		kind:    IdentParam,
+		name:    "baz",
+		defLine: 11,
+		defCol:  11,
+		refs: []protocol.Range{
+			{
+				Start: protocol.Position{Line: 24, Character: 20},
+				End:   protocol.Position{Line: 24, Character: 32},
+			},
+		},
+	},
+	{
+		kind:    IdentResult,
+		name:    "foo",
+		defLine: 14,
+		defCol:  11,
+		refs: []protocol.Range{
+			{
+				Start: protocol.Position{Line: 25, Character: 8},
+				End:   protocol.Position{Line: 25, Character: 26},
+			},
+			{
+				Start: protocol.Position{Line: 26, Character: 8},
+				End:   protocol.Position{Line: 26, Character: 26},
+			},
+			{
+				Start: protocol.Position{Line: 27, Character: 8},
+				End:   protocol.Position{Line: 27, Character: 26},
+			},
+		},
+	},
+	{
+		kind:    IdentWorkspace,
+		name:    "test",
+		defLine: 16,
+		defCol:  11,
+		refs: []protocol.Range{
+			{
+				Start: protocol.Position{Line: 28, Character: 8},
+				End:   protocol.Position{Line: 28, Character: 30},
+			},
+		},
+	},
+}
+
+func TestDocParseIdentifiers(t *testing.T) {
 	single := ParseFile(file.File(string(singleDoc)))
-	expected := []struct {
-		kind    identifierKind
-		name    string
-		defLine int // 1 based
-		defCol  int // 1 based
-		refs    []protocol.Range
-	}{
-		{
-			kind:    IdentParam,
-			name:    "foo",
-			defLine: 7,
-			defCol:  11,
-			refs: []protocol.Range{
-				{
-					Start: protocol.Position{Line: 21, Character: 15},
-					End:   protocol.Position{Line: 21, Character: 27},
-				},
-			},
-		},
-		{
-			kind:    IdentParam,
-			name:    "b",
-			defLine: 10,
-			defCol:  11,
-			refs:    nil,
-		},
-		{
-			kind:    IdentParam,
-			name:    "baz",
-			defLine: 11,
-			defCol:  11,
-			refs: []protocol.Range{
-				{
-					Start: protocol.Position{Line: 24, Character: 20},
-					End:   protocol.Position{Line: 24, Character: 32},
-				},
-			},
-		},
-		{
-			kind:    IdentResult,
-			name:    "foo",
-			defLine: 14,
-			defCol:  11,
-			refs: []protocol.Range{
-				{
-					Start: protocol.Position{Line: 25, Character: 8},
-					End:   protocol.Position{Line: 25, Character: 26},
-				},
-				{
-					Start: protocol.Position{Line: 26, Character: 8},
-					End:   protocol.Position{Line: 26, Character: 26},
-				},
-				{
-					Start: protocol.Position{Line: 27, Character: 8},
-					End:   protocol.Position{Line: 27, Character: 26},
-				},
-			},
-		},
-		{
-			kind:    IdentWorkspace,
-			name:    "test",
-			defLine: 16,
-			defCol:  11,
-			refs: []protocol.Range{
-				{
-					Start: protocol.Position{Line: 28, Character: 8},
-					End:   protocol.Position{Line: 28, Character: 30},
-				},
-			},
-		},
-	}
-	// for i, id := range single.docs[0].identifiers {
-	for i, exp := range expected {
+	for i, exp := range singleTCs {
 		if i >= len(single.docs[0].identifiers) {
 			t.Fatalf("parseIdentifiers: got %d identifiers, want %d",
 				len(single.docs[0].identifiers),
-				len(expected),
+				len(singleTCs),
 			)
 		}
 		id := single.docs[0].identifiers[i]
@@ -115,7 +115,7 @@ func TestParseIdentifiers(t *testing.T) {
 	}
 }
 
-func TestFindReferences(t *testing.T) {
+func TestDocFindReferences(t *testing.T) {
 	f := ParseFile(file.File(string(singleDoc)))
 	tcs := []struct {
 		pos  protocol.Position
@@ -154,7 +154,7 @@ func TestFindReferences(t *testing.T) {
 	}
 }
 
-func TestFindDefinition(t *testing.T) {
+func TestDocFindDefinition(t *testing.T) {
 	f := ParseFile(file.File(string(singleDoc)))
 	pos := protocol.Position{
 		Line:      25,

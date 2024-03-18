@@ -55,3 +55,15 @@ func (f File) OffsetPosition(offset int) protocol.Position {
 		Character: column,
 	}
 }
+
+func (f File) LineOffset(line int) int {
+	s := []byte(string(f))
+	offset := 0
+	for line > 0 && offset < len(s) {
+		if s[offset] == '\n' {
+			line--
+		}
+		offset++
+	}
+	return offset
+}

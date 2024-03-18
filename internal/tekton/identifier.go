@@ -126,10 +126,15 @@ func (d *Document) parseIdentifiers() {
 			identMap[id.meta.Name()] = id
 		}
 
+		// this can be reused between documents
 		refs := ident.referenceRegex.FindAllSubmatchIndex(d.Bytes(), 1000)
 		for _, match := range refs {
 			name := string(d.Bytes())[match[2]:match[3]]
 			id, _ := identMap[name]
+
+			if match[0] < d.offset || match[1] >= d.offset+d.size {
+				continue
+			}
 
 			start := d.OffsetPosition(match[0])
 			end := d.OffsetPosition(match[1] - 1)

@@ -39,6 +39,7 @@ func NewTektonHandler() *TektonHandler {
 		TextDocumentCompletion: th.docCompletion(),
 		TextDocumentDefinition: th.definition(),
 		TextDocumentReferences: th.references(),
+		TextDocumentRename:     th.rename(),
 	}
 	return th
 }
@@ -222,6 +223,12 @@ func (th *TektonHandler) references() protocol.TextDocumentReferencesFunc {
 		}
 
 		return locs, nil
+	}
+}
+
+func (th *TektonHandler) rename() protocol.TextDocumentRenameFunc {
+	return func(context *glsp.Context, params *protocol.RenameParams) (*protocol.WorkspaceEdit, error) {
+		return nil, nil
 	}
 }
 

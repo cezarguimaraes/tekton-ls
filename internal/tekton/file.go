@@ -39,6 +39,9 @@ type File struct {
 type Document struct {
 	file.File
 
+	offset int
+	size   int
+
 	ast *ast.DocumentNode
 
 	parameters []Meta
@@ -59,14 +62,25 @@ func ParseFile(f file.File) *File {
 		return r
 	}
 
-	for _, doc := range r.ast.Docs {
+	for i, doc := range r.ast.Docs {
 		d := &Document{
 			File: f,
 			ast:  doc,
-		}
-		d.parseIdentifiers()
 
+			offset: r.LineOffset(doc.Body.GetToken().Position.Line - 1),
+		}
+		if i > 0 {
+			r.docs[i-1].size = d.offset - r.docs[i-1].offset
+		}
 		r.docs = append(r.docs, d)
+	}
+	if len(r.docs) > 0 {
+		lst := r.docs[len(r.docs)-1]
+		lst.size = len(r.Bytes()) - lst.offset
+	}
+
+	for _, d := range r.docs {
+		d.parseIdentifiers()
 	}
 
 	return r
@@ -74,7 +88,9 @@ func ParseFile(f file.File) *File {
 
 func (f *File) findDoc(pos protocol.Position) *Document {
 	for _, d := range f.docs {
-		if d.ast.End == nil || pos.Line < uint32(d.ast.End.Position.Line) {
+		st := d.OffsetPosition(d.offset)
+		en := d.OffsetPosition(d.offset + d.size)
+		if inRange(pos, protocol.Range{st, en}) {
 			return d
 		}
 	}

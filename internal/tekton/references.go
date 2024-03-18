@@ -1,6 +1,8 @@
 package tekton
 
-import protocol "github.com/tliron/glsp/protocol_3_16"
+import (
+	protocol "github.com/tliron/glsp/protocol_3_16"
+)
 
 func (d *Document) findReferences(pos protocol.Position) []protocol.Range {
 	for _, id := range d.identifiers {
