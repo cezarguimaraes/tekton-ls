@@ -54,6 +54,10 @@ func FindNode(node ast.Node, line, col int) ast.Node {
 	var res ast.Node
 	// can be improved by culling the recursion
 	ast.Walk(VisitorFunc(func(n ast.Node) bool {
+		if _, ok := n.(*ast.NullNode); ok {
+			// workaround for tentative go-yaml bug fix
+			return false
+		}
 		tok := n.GetToken()
 		nxt := tok.Next
 		if nxt == nil {

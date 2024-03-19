@@ -16,13 +16,15 @@ func init() {
 	pipelineDoc, _ = os.ReadFile("./testdata/pipeline.yaml")
 }
 
-var singleTCs = []struct {
+type identTC struct {
 	kind    identifierKind
 	name    string
 	defLine int // 1 based
 	defCol  int // 1 based
 	refs    []protocol.Range
-}{
+}
+
+var singleTCs = []identTC{
 	{
 		kind:    IdentParam,
 		name:    "foo",
@@ -88,33 +90,94 @@ var singleTCs = []struct {
 	},
 }
 
+var pipeTCs = []identTC{
+	{
+		kind:    IdentWorkspace,
+		name:    "source",
+		defLine: 7,
+		defCol:  13,
+		refs: []protocol.Range{
+			{
+				Start: protocol.Position{Line: 13, Character: 21},
+				End:   protocol.Position{Line: 13, Character: 27},
+			},
+		},
+	},
+	{
+		kind:    IdentPipelineTask,
+		name:    "gen-code",
+		defLine: 9,
+		defCol:  13,
+		refs: []protocol.Range{
+			{
+				Start: protocol.Position{Line: 18, Character: 10},
+				End:   protocol.Position{Line: 18, Character: 18},
+			},
+		},
+	},
+	{
+		kind:    IdentPipelineTask,
+		name:    "gen-code-2",
+		defLine: 15,
+		defCol:  13,
+	},
+}
+
 func TestDocParseIdentifiers(t *testing.T) {
 	single := ParseFile(file.File(string(singleDoc)))
-	for i, exp := range singleTCs {
-		if i >= len(single.docs[0].identifiers) {
-			t.Fatalf("parseIdentifiers: got %d identifiers, want %d",
-				len(single.docs[0].identifiers),
-				len(singleTCs),
-			)
-		}
-		// TODO: test ident.prange
-		id := single.docs[0].identifiers[i]
-		if id.kind != exp.kind {
-			t.Errorf("id[%d].kind: got %s, want %s", i, id.kind, exp.kind)
-		}
-		if id.meta.Name() != exp.name {
-			t.Errorf("id[%d].name: got %s, want %s", i, id.meta.Name(), exp.name)
-		}
-		if got := id.definition.GetToken().Position.Line; got != exp.defLine {
-			t.Errorf("id[%d].definition.line: got %d, want %d", i, got, exp.defLine)
-		}
-		if got := id.definition.GetToken().Position.Column; got != exp.defCol {
-			t.Errorf("id[%d].definition.column: got %d, want %d", i, got, exp.defCol)
-		}
-		gotRefs := wholeReferences(id)
-		if !reflect.DeepEqual(gotRefs, exp.refs) {
-			t.Errorf("id[%d].references:\ngot %v\nwant %v", i, gotRefs, exp.refs)
-		}
+	pipe := ParseFile(file.File(string(pipelineDoc)))
+
+	tcs := []struct {
+		name  string
+		file  *File
+		cases []identTC
+	}{
+		{
+			name:  "correctly parses identifiers of a single task",
+			file:  single,
+			cases: singleTCs,
+		},
+		{
+			name:  "correctly parses identifiers of a single pipeline",
+			file:  pipe,
+			cases: pipeTCs,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			if len(tc.cases) != len(tc.file.docs[0].identifiers) {
+				t.Errorf("parseIdentifiers: got %d identifiers, want %d",
+					len(tc.file.docs[0].identifiers),
+					len(tc.cases),
+				)
+			}
+
+			for i, exp := range tc.cases {
+				if i >= len(tc.file.docs[0].identifiers) {
+					break
+				}
+
+				id := tc.file.docs[0].identifiers[i]
+				if id.kind != exp.kind {
+					t.Errorf("id[%d].kind: got %s, want %s", i, id.kind, exp.kind)
+				}
+				if id.meta.Name() != exp.name {
+					t.Errorf("id[%d].name: got %s, want %s", i, id.meta.Name(), exp.name)
+				}
+				// TODO: test ident.prange instead of unreliable token
+				if got := id.definition.GetToken().Position.Line; got != exp.defLine {
+					t.Errorf("id[%d].definition.line: got %d, want %d", i, got, exp.defLine)
+				}
+				if got := id.definition.GetToken().Position.Column; got != exp.defCol {
+					t.Errorf("id[%d].definition.column: got %d, want %d", i, got, exp.defCol)
+				}
+				gotRefs := wholeReferences(id)
+				if !reflect.DeepEqual(gotRefs, exp.refs) {
+					t.Errorf("id[%d].references:\ngot %v\nwant %v", i, gotRefs, exp.refs)
+				}
+			}
+		})
 	}
 }
 

@@ -144,7 +144,7 @@ func (f *File) Diagnostics() []protocol.Diagnostic {
 	return rs
 }
 
-type StringMap = map[string]string
+type StringMap = map[string]interface{}
 
 func mustPathString(path string) *yaml.Path {
 	p, err := yaml.PathString(path)

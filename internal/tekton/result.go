@@ -17,11 +17,11 @@ func (p Result) Completions() []completion {
 }
 
 func (p Result) Name() string {
-	return StringMap(p)["name"]
+	return StringMap(p)["name"].(string)
 }
 
 func (p Result) Description() string {
-	return StringMap(p)["description"]
+	return StringMap(p)["description"].(string)
 }
 
 func (p Result) Documentation() string {

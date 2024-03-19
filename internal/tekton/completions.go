@@ -24,7 +24,10 @@ func (d *Document) completions(pos protocol.Position) []fmt.Stringer {
 		for _, c := range cs {
 			if c.context != nil {
 				// contextual completion
-				ctx, _ := c.context.FilterNode(d.ast.Body)
+				ctx, err := c.context.FilterNode(d.ast.Body)
+				if err != nil {
+					panic(err)
+				}
 				if ctx == nil {
 					continue
 				}

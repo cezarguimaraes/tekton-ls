@@ -16,6 +16,7 @@ const (
 	IdentParam identifierKind = iota
 	IdentResult
 	IdentWorkspace
+	IdentPipelineTask
 )
 
 func (k identifierKind) String() string {
@@ -26,6 +27,8 @@ func (k identifierKind) String() string {
 		return "result"
 	case IdentWorkspace:
 		return "workspace"
+	case IdentPipelineTask:
+		return "pipelineTask"
 	}
 	return ""
 }
@@ -38,7 +41,7 @@ type identifier struct {
 	references [][]protocol.Range
 }
 
-type identRefFunc = func(*Document, map[string]interface{}, ast.Node) []reference
+type identRefFunc = func(*Document, interface{}, ast.Node) []reference
 
 type identRefs struct {
 	path    *yaml.Path
@@ -85,8 +88,9 @@ var identifiers = []struct {
 		references: []identRefs{
 			{
 				path: mustPathString("$.spec.tasks[*].workspaces[*]"),
-				handler: func(d *Document, v map[string]interface{}, node ast.Node) []reference {
-					ws, ok := v["workspace"]
+				handler: func(d *Document, v interface{}, node ast.Node) []reference {
+					vm := v.(map[string]interface{})
+					ws, ok := vm["workspace"]
 					if !ok {
 						return nil
 					}
@@ -107,6 +111,37 @@ var identifiers = []struct {
 						{
 							kind:    IdentWorkspace,
 							name:    wsName,
+							ident:   nil,
+							start:   prange.Start,
+							end:     prange.End,
+							offsets: offsets,
+						},
+					}
+				},
+			},
+		},
+	},
+	{
+		kind:           IdentPipelineTask,
+		listPath:       mustPathString("$.spec.tasks[*]"),
+		pathFormat:     "$.spec.tasks[%d].name",
+		referenceRegex: regexp.MustCompile(`\$\(tasks\.(.*?)\.(.*?)\.(.*?)\)`),
+		meta: func(s StringMap) Meta {
+			return PipelineTask(s)
+		},
+		references: []identRefs{
+			{
+				path: mustPathString("$.spec.tasks[*].runAfter[*]"),
+				handler: func(d *Document, v interface{}, node ast.Node) []reference {
+					s, ok := v.(string)
+					if !ok {
+						return nil
+					}
+					prange, offsets := d.getNodeRange(node)
+					return []reference{
+						{
+							kind:    IdentPipelineTask,
+							name:    s,
 							ident:   nil,
 							start:   prange.Start,
 							end:     prange.End,
@@ -230,17 +265,23 @@ func (d *Document) parseIdentifiers() {
 			switch n := node.(type) {
 			case *ast.SequenceNode:
 				for taskId, v := range n.Values {
-					if v == nil {
+					if v == nil { // current go-yaml bug
 						// filter can leave null values
 						continue
 					}
+
+					// tentative fix in https://github.com/goccy/go-yaml/compare/master...cezarguimaraes:go-yaml:fix-indexAll-child-segfault
+					if _, ok := v.(*ast.NullNode); ok {
+						continue
+					}
+
 					for idx, ws := range v.(*ast.SequenceNode).Values {
 						_ = taskId
 						_ = idx
 						if ws == nil {
 							panic("shouldnt happen")
 						}
-						var v map[string]interface{}
+						var v interface{}
 						_ = yaml.Unmarshal([]byte(ws.String()), &v)
 						refs := iref.handler(d, v, ws)
 						for _, ref := range refs {

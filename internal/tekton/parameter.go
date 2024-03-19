@@ -17,22 +17,22 @@ func (p Parameter) Completions() []completion {
 }
 
 func (p Parameter) Name() string {
-	return StringMap(p)["name"]
+	return StringMap(p)["name"].(string)
 }
 
 func (p Parameter) Default() string {
-	return StringMap(p)["default"]
+	return StringMap(p)["default"].(string)
 }
 
 func (p Parameter) Type() string {
-	if t, ok := StringMap(p)["type"]; ok {
+	if t, ok := StringMap(p)["type"].(string); ok {
 		return t
 	}
 	return "string"
 }
 
 func (p Parameter) Description() string {
-	return StringMap(p)["description"]
+	return StringMap(p)["description"].(string)
 }
 
 func (p Parameter) Documentation() string {
