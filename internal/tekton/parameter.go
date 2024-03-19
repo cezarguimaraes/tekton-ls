@@ -17,11 +17,13 @@ func (p Parameter) Completions() []completion {
 }
 
 func (p Parameter) Name() string {
-	return StringMap(p)["name"].(string)
+	n, _ := StringMap(p)["name"].(string)
+	return n
 }
 
 func (p Parameter) Default() string {
-	return StringMap(p)["default"].(string)
+	d, _ := StringMap(p)["default"].(string)
+	return d
 }
 
 func (p Parameter) Type() string {
@@ -32,7 +34,8 @@ func (p Parameter) Type() string {
 }
 
 func (p Parameter) Description() string {
-	return StringMap(p)["description"].(string)
+	d, _ := StringMap(p)["description"].(string)
+	return d
 }
 
 func (p Parameter) Documentation() string {

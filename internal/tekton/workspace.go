@@ -21,11 +21,13 @@ func (p Workspace) Completions() []completion {
 }
 
 func (p Workspace) Name() string {
-	return StringMap(p)["name"].(string)
+	n, _ := StringMap(p)["name"].(string)
+	return n
 }
 
 func (p Workspace) Description() string {
-	return StringMap(p)["description"].(string)
+	d, _ := StringMap(p)["description"].(string)
+	return d
 }
 
 func (p Workspace) Documentation() string {

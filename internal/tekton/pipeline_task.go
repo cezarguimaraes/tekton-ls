@@ -14,7 +14,8 @@ func (p PipelineTask) Completions() []completion {
 }
 
 func (p PipelineTask) Name() string {
-	return StringMap(p)["name"].(string)
+	n, _ := StringMap(p)["name"].(string)
+	return n
 }
 
 func (p PipelineTask) Documentation() string {
