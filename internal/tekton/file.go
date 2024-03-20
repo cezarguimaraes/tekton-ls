@@ -88,6 +88,10 @@ func ParseFile(f file.File) *File {
 		d.parseIdentifiers()
 	}
 
+	for _, d := range r.docs {
+		d.solveReferences()
+	}
+
 	return r
 }
 

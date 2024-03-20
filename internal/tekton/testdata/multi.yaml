@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: task_a
+  name: hello
 spec:
   parameters:
   - name: foo
@@ -31,7 +31,7 @@ spec:
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: task_b
+  name: hello
 spec:
   parameters:
   - name: foo

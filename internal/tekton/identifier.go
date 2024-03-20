@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
@@ -17,6 +18,7 @@ const (
 	IdentResult
 	IdentWorkspace
 	IdentPipelineTask
+	IdentTask
 )
 
 func (k identifierKind) String() string {
@@ -29,6 +31,8 @@ func (k identifierKind) String() string {
 		return "workspace"
 	case IdentPipelineTask:
 		return "pipelineTask"
+	case IdentTask:
+		return "task"
 	}
 	return ""
 }
@@ -41,28 +45,33 @@ type identifier struct {
 	references [][]protocol.Range
 }
 
-type identRefFunc = func(*Document, interface{}, ast.Node) []reference
-
-type identRefs struct {
-	path    *yaml.Path
-	handler identRefFunc
+func (d *Document) getIdent(kind identifierKind, name string) *identifier {
+	for _, id := range d.identifiers {
+		if id.kind != kind {
+			continue
+		}
+		if id.meta.Name() != name {
+			continue
+		}
+		return id
+	}
+	return nil
 }
 
 var identifiers = []struct {
 	kind identifierKind
 	meta func(StringMap) Meta
 
-	listPath       *yaml.Path
-	pathFormat     string
-	referenceRegex *regexp.Regexp
+	listPath *yaml.Path
+	depth    int
+	namePath *yaml.Path // optional
 
-	// paths where this kind of ident might be referred
-	references []identRefs
+	referenceRegex *regexp.Regexp
 }{
 	{
 		kind:           IdentParam,
 		listPath:       mustPathString("$.spec.parameters[*]"),
-		pathFormat:     "$.spec.parameters[%d].name",
+		depth:          1,
 		referenceRegex: regexp.MustCompile(`\$\(params\.(.*?)\)`),
 		meta: func(s StringMap) Meta {
 			return Parameter(s)
@@ -71,7 +80,7 @@ var identifiers = []struct {
 	{
 		kind:           IdentResult,
 		listPath:       mustPathString("$.spec.results[*]"),
-		pathFormat:     "$.spec.results[%d].name",
+		depth:          1,
 		referenceRegex: regexp.MustCompile(`\$\(results\.(.*?)\.(.*?)\)`),
 		meta: func(s StringMap) Meta {
 			return Result(s)
@@ -80,76 +89,33 @@ var identifiers = []struct {
 	{
 		kind:           IdentWorkspace,
 		listPath:       mustPathString("$.spec.workspaces[*]"),
-		pathFormat:     "$.spec.workspaces[%d].name",
+		depth:          1,
 		referenceRegex: regexp.MustCompile(`\$\(workspaces\.(.*?)\.(.*?)\)`),
 		meta: func(s StringMap) Meta {
 			return Workspace(s)
-		},
-		references: []identRefs{
-			{
-				path: mustPathString("$.spec.tasks[*].workspaces[*]"),
-				handler: func(d *Document, v interface{}, node ast.Node) []reference {
-					vm := v.(map[string]interface{})
-					ws, ok := vm["workspace"]
-					if !ok {
-						return nil
-					}
-					wsName, ok := ws.(string)
-					if !ok {
-						return nil
-					}
-					// TODO: move elsewhere
-					namePath := mustPathString("$.workspace")
-
-					nameNode, err := namePath.FilterNode(node)
-					if err != nil {
-						panic("should never happen")
-					}
-
-					prange, offsets := d.getNodeRange(nameNode)
-					return []reference{
-						{
-							kind:    IdentWorkspace,
-							name:    wsName,
-							ident:   nil,
-							start:   prange.Start,
-							end:     prange.End,
-							offsets: offsets,
-						},
-					}
-				},
-			},
 		},
 	},
 	{
 		kind:           IdentPipelineTask,
 		listPath:       mustPathString("$.spec.tasks[*]"),
-		pathFormat:     "$.spec.tasks[%d].name",
+		depth:          1,
 		referenceRegex: regexp.MustCompile(`\$\(tasks\.(.*?)\.(.*?)\.(.*?)\)`),
 		meta: func(s StringMap) Meta {
 			return PipelineTask(s)
 		},
-		references: []identRefs{
-			{
-				path: mustPathString("$.spec.tasks[*].runAfter[*]"),
-				handler: func(d *Document, v interface{}, node ast.Node) []reference {
-					s, ok := v.(string)
-					if !ok {
-						return nil
-					}
-					prange, offsets := d.getNodeRange(node)
-					return []reference{
-						{
-							kind:    IdentPipelineTask,
-							name:    s,
-							ident:   nil,
-							start:   prange.Start,
-							end:     prange.End,
-							offsets: offsets,
-						},
-					}
-				},
-			},
+	},
+	{
+		kind: IdentTask,
+		// $ path does not work, so we handle listPath == nil and don't filter
+		// listPath: mustPathString("$"),
+		namePath: mustPathString("$.metadata.name"),
+		depth:    0,
+		meta: func(s StringMap) Meta {
+			kind, ok := s["kind"].(string)
+			if !ok || strings.ToLower(kind) != "task" {
+				return nil
+			}
+			return Task(s)
 		},
 	},
 }
@@ -172,19 +138,27 @@ func (d *Document) getNodeRange(node ast.Node) (r protocol.Range, offsets []int)
 func (d *Document) parseIdentifiers() {
 	ids := []*identifier{}
 	for _, ident := range identifiers {
-		node, err := ident.listPath.FilterNode(d.ast.Body)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error listing ident %s: %v", ident.kind, err)
-			continue
+		node := d.ast.Body
+		var err error
+		if ident.listPath != nil {
+			node, err = ident.listPath.FilterNode(d.ast.Body)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error listing ident %s: %v", ident.kind, err)
+				continue
+			}
 		}
 
 		if node == nil {
+			if ident.kind == IdentTask {
+				panic("aff")
+			}
 			continue
 		}
 
-		ms := []StringMap{}
-		if err = yaml.Unmarshal([]byte(node.String()+" "), &ms); err != nil {
-			// apparent go-yaml bug:
+		identMap := make(map[string]*identifier)
+		visitNodes(node, ident.depth, func(n ast.Node) {
+			var v StringMap
+			// go-yaml bug:
 			// ```yaml
 			// val: >-
 			//   name
@@ -192,34 +166,39 @@ func (d *Document) parseIdentifiers() {
 			//   # the value is unmarshalled as `nam`
 			// ```
 			// workaround: append a whitespace before unmarshalling
+			_ = yaml.Unmarshal([]byte(n.String()+" "), &v)
+			meta := ident.meta(v)
+			if meta == nil {
+				return
+			}
 
-			fmt.Fprintf(os.Stderr, "error unmarshalling nodes of kind %d: %v", ident.kind, err)
-			continue
-		}
+			namePath := ident.namePath
+			if namePath == nil {
+				namePath = mustPathString("$.name")
+			}
 
-		identMap := make(map[string]*identifier)
+			nameNode, err := namePath.FilterNode(n)
+			if err != nil {
+				panic("should never happen")
+			}
 
-		for idx, m := range ms {
-			// TODO: handle nameless idents
-
-			def, _ := mustPathString(
-				fmt.Sprintf(ident.pathFormat, idx),
-			).FilterNode(d.ast.Body)
-
-			defRange, _ := d.getNodeRange(def)
+			defRange, _ := d.getNodeRange(nameNode)
 			id := &identifier{
 				kind:       ident.kind,
-				meta:       ident.meta(m),
-				definition: def,
+				meta:       ident.meta(v),
+				definition: nameNode,
 				prange:     defRange,
 			}
 			ids = append(ids, id)
 
 			identMap[id.meta.Name()] = id
-		}
+		})
 
 		// this can be reused between documents
-		refs := ident.referenceRegex.FindAllSubmatchIndex(d.Bytes(), 1000)
+		var refs [][]int
+		if ident.referenceRegex != nil {
+			refs = ident.referenceRegex.FindAllSubmatchIndex(d.Bytes(), 1000)
+		}
 		for _, match := range refs {
 			name := string(d.Bytes())[match[2]:match[3]]
 			id, _ := identMap[name]
@@ -251,64 +230,26 @@ func (d *Document) parseIdentifiers() {
 				offsets: match,
 			})
 		}
-
-		for _, iref := range ident.references {
-			// path, handler
-			node, err := iref.path.FilterNode(d.ast.Body)
-			if err != nil {
-				panic(err)
-			}
-			if node == nil {
-				continue
-			}
-			// var vs []map[string]interface{}
-			switch n := node.(type) {
-			case *ast.SequenceNode:
-				for taskId, v := range n.Values {
-					if v == nil { // current go-yaml bug
-						// filter can leave null values
-						continue
-					}
-
-					// tentative fix in https://github.com/goccy/go-yaml/compare/master...cezarguimaraes:go-yaml:fix-indexAll-child-segfault
-					if _, ok := v.(*ast.NullNode); ok {
-						continue
-					}
-
-					for idx, ws := range v.(*ast.SequenceNode).Values {
-						_ = taskId
-						_ = idx
-						if ws == nil {
-							panic("shouldnt happen")
-						}
-						var v interface{}
-						_ = yaml.Unmarshal([]byte(ws.String()), &v)
-						refs := iref.handler(d, v, ws)
-						for _, ref := range refs {
-							id, _ := identMap[ref.name]
-							if id != nil {
-								id.references = append(id.references, []protocol.Range{
-									{
-										Start: ref.start,
-										End:   ref.end,
-									},
-									{
-										Start: ref.start,
-										End:   ref.end,
-									},
-								})
-							}
-							ref.ident = id
-							d.references = append(d.references, ref)
-						}
-					}
-				}
-			default:
-				panic("unhandled node type: " + n.Type().String())
-
-			}
-
-		}
 	}
+
 	d.identifiers = ids
+}
+
+// TODO: move to yaml package
+type visitFunc = func(ast.Node)
+
+func visitNodes(node ast.Node, depth int, f visitFunc) {
+	if node == nil {
+		return
+	}
+	if _, isNull := node.(*ast.NullNode); isNull {
+		return
+	}
+	if depth == 0 {
+		f(node)
+		return
+	}
+	for _, v := range node.(*ast.SequenceNode).Values {
+		visitNodes(v, depth-1, f)
+	}
 }

@@ -88,6 +88,12 @@ var singleTCs = []identTC{
 			},
 		},
 	},
+	{
+		kind:    IdentTask,
+		name:    "hello",
+		defLine: 4,
+		defCol:  9,
+	},
 }
 
 var pipeTCs = []identTC{
@@ -100,6 +106,10 @@ var pipeTCs = []identTC{
 			{
 				Start: protocol.Position{Line: 13, Character: 21},
 				End:   protocol.Position{Line: 13, Character: 27},
+			},
+			{
+				Start: protocol.Position{Line: 21, Character: 21},
+				End:   protocol.Position{Line: 21, Character: 27},
 			},
 		},
 	},
@@ -123,6 +133,45 @@ var pipeTCs = []identTC{
 	},
 }
 
+var taskTCs = []identTC{
+	{
+		kind:    IdentParam,
+		name:    "param",
+		defLine: 30,
+		defCol:  11,
+		refs: []protocol.Range{
+			{
+				Start: protocol.Position{Line: 39, Character: 15},
+				End:   protocol.Position{Line: 39, Character: 30},
+			},
+		},
+	},
+	{
+		kind:    IdentResult,
+		name:    "foo",
+		defLine: 32,
+		defCol:  11,
+		refs: []protocol.Range{
+			{
+				Start: protocol.Position{Line: 42, Character: 20},
+				End:   protocol.Position{Line: 42, Character: 39},
+			},
+		},
+	},
+	{
+		kind:    IdentWorkspace,
+		name:    "source",
+		defLine: 34,
+		defCol:  11,
+	},
+	{
+		kind:    IdentTask,
+		name:    "gen-code",
+		defLine: 27,
+		defCol:  9,
+	},
+}
+
 func TestDocParseIdentifiers(t *testing.T) {
 	single := ParseFile(file.File(string(singleDoc)))
 	pipe := ParseFile(file.File(string(pipelineDoc)))
@@ -131,6 +180,7 @@ func TestDocParseIdentifiers(t *testing.T) {
 		name  string
 		file  *File
 		cases []identTC
+		docId int
 	}{
 		{
 			name:  "correctly parses identifiers of a single task",
@@ -138,27 +188,33 @@ func TestDocParseIdentifiers(t *testing.T) {
 			cases: singleTCs,
 		},
 		{
-			name:  "correctly parses identifiers of a single pipeline",
+			name:  "correctly parses identifiers of a pipeline",
 			file:  pipe,
 			cases: pipeTCs,
+		},
+		{
+			name:  "correctly parses identifiers of a task",
+			file:  pipe,
+			cases: taskTCs,
+			docId: 1,
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			if len(tc.cases) != len(tc.file.docs[0].identifiers) {
+			if len(tc.cases) != len(tc.file.docs[tc.docId].identifiers) {
 				t.Errorf("parseIdentifiers: got %d identifiers, want %d",
-					len(tc.file.docs[0].identifiers),
+					len(tc.file.docs[tc.docId].identifiers),
 					len(tc.cases),
 				)
 			}
 
 			for i, exp := range tc.cases {
-				if i >= len(tc.file.docs[0].identifiers) {
+				if i >= len(tc.file.docs[tc.docId].identifiers) {
 					break
 				}
 
-				id := tc.file.docs[0].identifiers[i]
+				id := tc.file.docs[tc.docId].identifiers[i]
 				if id.kind != exp.kind {
 					t.Errorf("id[%d].kind: got %s, want %s", i, id.kind, exp.kind)
 				}
@@ -229,6 +285,10 @@ func TestDocFindReferences(t *testing.T) {
 				{
 					Start: protocol.Position{Line: 13, Character: 21},
 					End:   protocol.Position{Line: 13, Character: 27},
+				},
+				{
+					Start: protocol.Position{Line: 21, Character: 21},
+					End:   protocol.Position{Line: 21, Character: 27},
 				},
 			},
 		},

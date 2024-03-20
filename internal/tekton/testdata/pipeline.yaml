@@ -19,7 +19,26 @@ spec:
         - gen-code
       workspaces:
         - name: source
-          workspace: source2
-        - name: foo
-          workspace: source2
+          workspace: source
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: gen-code
+spec:
+  parameters:
+  - name: param
+  results:
+  - name: foo
+  workspaces:
+  - name: source
+  steps:
+    - name: example
+      image: busybox
+      env:
+      - name: FOO
+        value: $(params.param)
+      script: |
+        #!/bin/sh
+        echo $FOO > $(results.foo.path)
 

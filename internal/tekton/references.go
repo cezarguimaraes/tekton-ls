@@ -1,8 +1,111 @@
 package tekton
 
 import (
+	"github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml/ast"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
+
+type referenceResolver interface {
+	find(*Document)
+}
+
+type pathRef struct {
+	kind    identifierKind
+	path    *yaml.Path
+	handler func(*Document, interface{}, ast.Node) []reference
+}
+
+var _ referenceResolver = &pathRef{}
+
+func (r *pathRef) find(d *Document) {
+	node, err := r.path.FilterNode(d.ast.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	visitNodes(node, 2, func(n ast.Node) {
+		var v interface{}
+		_ = yaml.Unmarshal([]byte(n.String()), &v)
+
+		refs := r.handler(d, v, n)
+		for _, ref := range refs {
+			id := d.getIdent(r.kind, ref.name)
+			if id != nil {
+				id.references = append(id.references, []protocol.Range{
+					{
+						Start: ref.start,
+						End:   ref.end,
+					},
+					{
+						Start: ref.start,
+						End:   ref.end,
+					},
+				})
+			}
+			ref.ident = id
+			d.references = append(d.references, ref)
+		}
+	})
+}
+
+var references = []referenceResolver{
+	&pathRef{
+		kind: IdentWorkspace,
+		path: mustPathString("$.spec.tasks[*].workspaces[*]"),
+		handler: func(d *Document, v interface{}, node ast.Node) []reference {
+			vm := v.(map[string]interface{})
+			ws, ok := vm["workspace"]
+			if !ok {
+				return nil
+			}
+			wsName, ok := ws.(string)
+			if !ok {
+				return nil
+			}
+			// TODO: move elsewhere
+			namePath := mustPathString("$.workspace")
+
+			nameNode, err := namePath.FilterNode(node)
+			if err != nil {
+				panic("should never happen")
+			}
+
+			prange, offsets := d.getNodeRange(nameNode)
+			return []reference{
+				{
+					kind:    IdentWorkspace,
+					name:    wsName,
+					ident:   nil,
+					start:   prange.Start,
+					end:     prange.End,
+					offsets: offsets,
+				},
+			}
+		},
+	},
+	&pathRef{
+		kind: IdentPipelineTask,
+		path: mustPathString("$.spec.tasks[*].runAfter[*]"),
+		handler: func(d *Document, v interface{}, node ast.Node) []reference {
+			s, ok := v.(string)
+			if !ok {
+				return nil
+			}
+			prange, offsets := d.getNodeRange(node)
+			return []reference{
+				{
+					kind:    IdentPipelineTask,
+					name:    s,
+					ident:   nil,
+					start:   prange.Start,
+					end:     prange.End,
+					offsets: offsets,
+				},
+			}
+		},
+	},
+}
 
 func wholeReferences(id *identifier) []protocol.Range {
 	if id == nil {
@@ -13,6 +116,12 @@ func wholeReferences(id *identifier) []protocol.Range {
 		refs = append(refs, ref[0])
 	}
 	return refs
+}
+
+func (d *Document) solveReferences() {
+	for _, ref := range references {
+		ref.find(d)
+	}
 }
 
 func (d *Document) findIdentifier(pos protocol.Position) *identifier {
