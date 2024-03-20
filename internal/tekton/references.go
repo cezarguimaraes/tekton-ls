@@ -242,7 +242,7 @@ func (d *Document) solveReferences() {
 
 func (d *Document) findIdentifier(pos protocol.Position) *identifier {
 	for _, id := range d.identifiers {
-		if inRange(pos, id.prange) {
+		if inRange(pos, id.location.Range) {
 			return id
 		}
 	}

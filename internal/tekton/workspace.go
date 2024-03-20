@@ -82,3 +82,7 @@ func (w *Workspace) getIdent(kind identifierKind, name string) *identifier {
 func (w *Workspace) FindReferences(docUri string, pos protocol.Position) []protocol.Location {
 	return w.File(docUri).FindReferences(pos)
 }
+
+func (w *Workspace) Rename(docUri string, pos protocol.Position, newName string) (*protocol.WorkspaceEdit, error) {
+	return w.File(docUri).Rename(pos, newName)
+}

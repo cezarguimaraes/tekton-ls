@@ -189,15 +189,11 @@ func (th *TektonHandler) docCompletion() protocol.TextDocumentCompletionFunc {
 func (th *TektonHandler) definition() protocol.TextDocumentDefinitionFunc {
 	return func(context *glsp.Context, params *protocol.DefinitionParams) (any, error) {
 		f := getDoc(th, params.TextDocument)
-		def := f.Definition(params.Position)
-		if def == nil {
+		loc := f.Definition(params.Position)
+		if loc == nil {
 			return nil, nil
 		}
 
-		loc := protocol.Location{
-			URI:   params.TextDocument.URI,
-			Range: *def,
-		}
 		return loc, nil
 	}
 }
@@ -222,36 +218,17 @@ func (th *TektonHandler) hover() protocol.TextDocumentHoverFunc {
 
 func (th *TektonHandler) references() protocol.TextDocumentReferencesFunc {
 	return func(context *glsp.Context, params *protocol.ReferenceParams) ([]protocol.Location, error) {
-		f := getDoc(th, params.TextDocument)
-		refs := f.FindReferences(params.Position)
-		if len(refs) == 0 {
-			return nil, nil
-		}
-
-		locs := []protocol.Location{}
-		for _, ref := range refs {
-			locs = append(locs, protocol.Location{
-				URI:   params.TextDocument.URI,
-				Range: ref,
-			})
-		}
-
-		return locs, nil
+		return th.workspace.FindReferences(params.TextDocument.URI, params.Position), nil
 	}
 }
 
 func (th *TektonHandler) rename() protocol.TextDocumentRenameFunc {
 	return func(context *glsp.Context, params *protocol.RenameParams) (*protocol.WorkspaceEdit, error) {
-		f := getDoc(th, params.TextDocument)
-		es, err := f.Rename(params.Position, params.NewName)
-		if err != nil {
-			return nil, err
-		}
-		return &protocol.WorkspaceEdit{
-			Changes: map[string][]protocol.TextEdit{
-				params.TextDocument.URI: es,
-			},
-		}, nil
+		return th.workspace.Rename(
+			params.TextDocument.URI,
+			params.Position,
+			params.NewName,
+		)
 	}
 }
 

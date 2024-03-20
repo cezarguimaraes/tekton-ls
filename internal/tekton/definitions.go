@@ -2,12 +2,12 @@ package tekton
 
 import protocol "github.com/tliron/glsp/protocol_3_16"
 
-func (d *Document) definition(pos protocol.Position) *protocol.Range {
+func (d *Document) definition(pos protocol.Position) *protocol.Location {
 	ref := d.findDefinition(pos)
 	if ref == nil || ref.ident == nil {
 		return nil
 	}
-	return &ref.ident.prange
+	return &ref.ident.location
 }
 
 func (d *Document) hover(pos protocol.Position) *string {

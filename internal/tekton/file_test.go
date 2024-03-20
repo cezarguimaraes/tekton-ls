@@ -59,16 +59,20 @@ func TestFileParseIdentifiers(t *testing.T) {
 					},
 				})
 			}
-			gotRefs := wholeReferences(id)
-			ranges := []protocol.Range{}
-			for _, ref := range gotRefs {
-				ranges = append(ranges, ref.Range)
-			}
-			if !reflect.DeepEqual(ranges, wantRefs) {
+			gotRefs := locationToRange(wholeReferences(id))
+			if !reflect.DeepEqual(gotRefs, wantRefs) {
 				t.Errorf("doc[%d].id[%d].references:\ngot %v\nwant %v", docId, i, gotRefs, wantRefs)
 			}
 		}
 	}
+}
+
+func locationToRange(locs []protocol.Location) []protocol.Range {
+	var ranges []protocol.Range
+	for _, ref := range locs {
+		ranges = append(ranges, ref.Range)
+	}
+	return ranges
 }
 
 func TestFileFindReferences(t *testing.T) {
@@ -127,7 +131,7 @@ func TestFileFindReferences(t *testing.T) {
 		},
 	}
 	for _, tc := range tcs {
-		got := f.FindReferences(tc.pos)
+		got := locationToRange(f.FindReferences(tc.pos))
 		if !reflect.DeepEqual(got, tc.refs) {
 			t.Errorf("FindReferences(%v):\ngot %v\nwant %v", tc.pos, got, tc.refs)
 		}

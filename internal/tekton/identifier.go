@@ -40,7 +40,7 @@ type identifier struct {
 	kind       identifierKind
 	meta       Meta
 	definition ast.Node
-	prange     protocol.Range
+	location   protocol.Location
 	references [][]protocol.Location
 }
 
@@ -173,7 +173,10 @@ func (d *Document) parseIdentifiers() {
 				kind:       ident.kind,
 				meta:       ident.meta(v),
 				definition: nameNode,
-				prange:     defRange,
+				location: protocol.Location{
+					Range: defRange,
+					URI:   d.file.uri,
+				},
 			}
 			d.identifiers = append(d.identifiers, id)
 

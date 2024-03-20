@@ -242,7 +242,7 @@ func TestDocParseIdentifiers(t *testing.T) {
 				if got := id.definition.GetToken().Position.Column; got != exp.defCol {
 					t.Errorf("id[%d].definition.column: got %d, want %d", i, got, exp.defCol)
 				}
-				gotRefs := wholeReferences(id)
+				gotRefs := locationToRange(wholeReferences(id))
 				if !reflect.DeepEqual(gotRefs, exp.refs) {
 					t.Errorf("id[%d].references:\ngot %v\nwant %v", i, gotRefs, exp.refs)
 				}
@@ -308,7 +308,7 @@ func TestDocFindReferences(t *testing.T) {
 		},
 	}
 	for _, tc := range tcs {
-		got := tc.doc.findReferences(tc.pos)
+		got := locationToRange(tc.doc.findReferences(tc.pos))
 		if !reflect.DeepEqual(got, tc.refs) {
 			t.Errorf("FindReferences(%v):\ngot %v\nwant %v", tc.pos, got, tc.refs)
 		}

@@ -71,6 +71,7 @@ func NewFile(f file.File) *File {
 	}
 
 	r.ast, r.parseError = parser.ParseBytes(f.Bytes(), 0)
+	// document separator -- is not considered parse error
 	if r.parseError != nil {
 		return r
 	}
@@ -110,12 +111,18 @@ func ParseFile(f file.File) *File {
 }
 
 func (f *File) solveReferences() {
+	if f.parseError != nil {
+		return
+	}
 	for _, d := range f.docs {
 		d.solveReferences()
 	}
 }
 
 func (f *File) solveIdentifiers() {
+	if f.parseError != nil {
+		return
+	}
 	for _, d := range f.docs {
 		d.parseIdentifiers()
 	}
@@ -162,11 +169,11 @@ func (f *File) Rename(pos protocol.Position, newName string) (*protocol.Workspac
 	return f.findDoc(pos).rename(pos, newName)
 }
 
-func (f *File) PrepareRename(pos protocol.Position) *protocol.Range {
+func (f *File) PrepareRename(pos protocol.Position) *protocol.Location {
 	return f.findDoc(pos).prepareRename(pos)
 }
 
-func (f *File) Definition(pos protocol.Position) *protocol.Range {
+func (f *File) Definition(pos protocol.Position) *protocol.Location {
 	return f.findDoc(pos).definition(pos)
 }
 

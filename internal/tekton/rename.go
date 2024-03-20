@@ -6,12 +6,12 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-func (d *Document) prepareRename(pos protocol.Position) *protocol.Range {
+func (d *Document) prepareRename(pos protocol.Position) *protocol.Location {
 	id := d.findIdentifier(pos)
 	if id == nil {
 		return nil
 	}
-	return &id.prange
+	return &id.location
 }
 
 func (d *Document) rename(
@@ -27,7 +27,7 @@ func (d *Document) rename(
 	changes := map[string][]protocol.TextEdit{}
 	changes[d.file.uri] = append(changes[d.file.uri],
 		protocol.TextEdit{
-			Range:   id.prange,
+			Range:   id.location.Range,
 			NewText: newName,
 		},
 	)
