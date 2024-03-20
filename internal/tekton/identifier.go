@@ -3,7 +3,6 @@ package tekton
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/goccy/go-yaml"
@@ -65,41 +64,35 @@ var identifiers = []struct {
 	listPath *yaml.Path
 	depth    int
 	namePath *yaml.Path // optional
-
-	referenceRegex *regexp.Regexp
 }{
 	{
-		kind:           IdentParam,
-		listPath:       mustPathString("$.spec.parameters[*]"),
-		depth:          1,
-		referenceRegex: regexp.MustCompile(`\$\(params\.(.*?)\)`),
+		kind:     IdentParam,
+		listPath: mustPathString("$.spec.parameters[*]"),
+		depth:    1,
 		meta: func(s StringMap) Meta {
 			return Parameter(s)
 		},
 	},
 	{
-		kind:           IdentResult,
-		listPath:       mustPathString("$.spec.results[*]"),
-		depth:          1,
-		referenceRegex: regexp.MustCompile(`\$\(results\.(.*?)\.(.*?)\)`),
+		kind:     IdentResult,
+		listPath: mustPathString("$.spec.results[*]"),
+		depth:    1,
 		meta: func(s StringMap) Meta {
 			return Result(s)
 		},
 	},
 	{
-		kind:           IdentWorkspace,
-		listPath:       mustPathString("$.spec.workspaces[*]"),
-		depth:          1,
-		referenceRegex: regexp.MustCompile(`\$\(workspaces\.(.*?)\.(.*?)\)`),
+		kind:     IdentWorkspace,
+		listPath: mustPathString("$.spec.workspaces[*]"),
+		depth:    1,
 		meta: func(s StringMap) Meta {
 			return Workspace(s)
 		},
 	},
 	{
-		kind:           IdentPipelineTask,
-		listPath:       mustPathString("$.spec.tasks[*]"),
-		depth:          1,
-		referenceRegex: regexp.MustCompile(`\$\(tasks\.(.*?)\.(.*?)\.(.*?)\)`),
+		kind:     IdentPipelineTask,
+		listPath: mustPathString("$.spec.tasks[*]"),
+		depth:    1,
 		meta: func(s StringMap) Meta {
 			return PipelineTask(s)
 		},
@@ -193,43 +186,6 @@ func (d *Document) parseIdentifiers() {
 
 			identMap[id.meta.Name()] = id
 		})
-
-		// this can be reused between documents
-		var refs [][]int
-		if ident.referenceRegex != nil {
-			refs = ident.referenceRegex.FindAllSubmatchIndex(d.Bytes(), 1000)
-		}
-		for _, match := range refs {
-			name := string(d.Bytes())[match[2]:match[3]]
-			id, _ := identMap[name]
-
-			if match[0] < d.offset || match[1] > d.offset+d.size {
-				continue
-			}
-
-			start := d.OffsetPosition(match[0])
-			end := d.OffsetPosition(match[1])
-			if id != nil {
-				id.references = append(id.references, []protocol.Range{
-					{
-						Start: start,
-						End:   end,
-					},
-					{
-						Start: d.OffsetPosition(match[2]),
-						End:   d.OffsetPosition(match[3]),
-					},
-				})
-			}
-			d.references = append(d.references, reference{
-				kind:    ident.kind,
-				name:    name,
-				ident:   id,
-				start:   start,
-				end:     end,
-				offsets: match,
-			})
-		}
 	}
 
 	d.identifiers = ids

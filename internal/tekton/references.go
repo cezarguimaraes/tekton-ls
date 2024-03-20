@@ -1,6 +1,8 @@
 package tekton
 
 import (
+	"regexp"
+
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	protocol "github.com/tliron/glsp/protocol_3_16"
@@ -8,6 +10,49 @@ import (
 
 type referenceResolver interface {
 	find(*Document)
+}
+
+type regexpRef struct {
+	kind  identifierKind
+	regex *regexp.Regexp
+}
+
+var _ referenceResolver = &regexpRef{}
+
+func (r *regexpRef) find(d *Document) {
+	// this can be reused between documents
+	refs := r.regex.FindAllSubmatchIndex(d.Bytes(), 1000)
+	for _, match := range refs {
+		name := string(d.Bytes())[match[2]:match[3]]
+		id := d.getIdent(r.kind, name)
+
+		if match[0] < d.offset || match[1] > d.offset+d.size {
+			continue
+		}
+
+		start := d.OffsetPosition(match[0])
+		end := d.OffsetPosition(match[1])
+		if id != nil {
+			id.references = append(id.references, []protocol.Range{
+				{
+					Start: start,
+					End:   end,
+				},
+				{
+					Start: d.OffsetPosition(match[2]),
+					End:   d.OffsetPosition(match[3]),
+				},
+			})
+		}
+		d.references = append(d.references, reference{
+			kind:    r.kind,
+			name:    name,
+			ident:   id,
+			start:   start,
+			end:     end,
+			offsets: match,
+		})
+	}
 }
 
 type pathRef struct {
@@ -50,6 +95,22 @@ func (r *pathRef) find(d *Document) {
 }
 
 var references = []referenceResolver{
+	&regexpRef{
+		kind:  IdentParam,
+		regex: regexp.MustCompile(`\$\(params\.(.*?)\)`),
+	},
+	&regexpRef{
+		kind:  IdentResult,
+		regex: regexp.MustCompile(`\$\(results\.(.*?)\.(.*?)\)`),
+	},
+	&regexpRef{
+		kind:  IdentWorkspace,
+		regex: regexp.MustCompile(`\$\(workspaces\.(.*?)\.(.*?)\)`),
+	},
+	&regexpRef{
+		kind:  IdentPipelineTask,
+		regex: regexp.MustCompile(`\$\(tasks\.(.*?)\.(.*?)\.(.*?)\)`),
+	},
 	&pathRef{
 		kind: IdentWorkspace,
 		path: mustPathString("$.spec.tasks[*].workspaces[*]"),
