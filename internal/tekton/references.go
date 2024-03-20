@@ -185,6 +185,28 @@ var references = []referenceResolver{
 			}
 		},
 	},
+	&pathRef{
+		path:  mustPathString("$.spec.tasks[*].parameters[*].name"),
+		depth: 2,
+		handler: func(d *Document, v interface{}, node ast.Node) []reference {
+			s, ok := v.(string)
+			if !ok {
+				return nil
+			}
+			prange, offsets := d.getNodeRange(node)
+			return []reference{
+				{
+					kind: IdentParam,
+					name: s,
+					// TODO: get param from the correct task :)
+					ident:   d.file.getIdent(IdentParam, s),
+					start:   prange.Start,
+					end:     prange.End,
+					offsets: offsets,
+				},
+			}
+		},
+	},
 }
 
 func wholeReferences(id *identifier) []protocol.Range {

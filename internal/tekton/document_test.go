@@ -104,12 +104,12 @@ var pipeTCs = []identTC{
 		defCol:  13,
 		refs: []protocol.Range{
 			{
-				Start: protocol.Position{Line: 13, Character: 21},
-				End:   protocol.Position{Line: 13, Character: 27},
+				Start: protocol.Position{Line: 16, Character: 21},
+				End:   protocol.Position{Line: 16, Character: 27},
 			},
 			{
-				Start: protocol.Position{Line: 21, Character: 21},
-				End:   protocol.Position{Line: 21, Character: 27},
+				Start: protocol.Position{Line: 24, Character: 21},
+				End:   protocol.Position{Line: 24, Character: 27},
 			},
 		},
 	},
@@ -120,15 +120,15 @@ var pipeTCs = []identTC{
 		defCol:  13,
 		refs: []protocol.Range{
 			{
-				Start: protocol.Position{Line: 18, Character: 10},
-				End:   protocol.Position{Line: 18, Character: 18},
+				Start: protocol.Position{Line: 21, Character: 10},
+				End:   protocol.Position{Line: 21, Character: 18},
 			},
 		},
 	},
 	{
 		kind:    IdentPipelineTask,
 		name:    "gen-code-2",
-		defLine: 15,
+		defLine: 18,
 		defCol:  13,
 	},
 }
@@ -137,7 +137,7 @@ var taskTCs = []identTC{
 	{
 		kind:    IdentParam,
 		name:    "param",
-		defLine: 30,
+		defLine: 33,
 		defCol:  11,
 		refs: []protocol.Range{
 			{
@@ -149,25 +149,25 @@ var taskTCs = []identTC{
 	{
 		kind:    IdentResult,
 		name:    "foo",
-		defLine: 32,
+		defLine: 35,
 		defCol:  11,
 		refs: []protocol.Range{
 			{
-				Start: protocol.Position{Line: 42, Character: 20},
-				End:   protocol.Position{Line: 42, Character: 39},
+				Start: protocol.Position{Line: 45, Character: 20},
+				End:   protocol.Position{Line: 45, Character: 39},
 			},
 		},
 	},
 	{
 		kind:    IdentWorkspace,
 		name:    "source",
-		defLine: 34,
+		defLine: 37,
 		defCol:  11,
 	},
 	{
 		kind:    IdentTask,
 		name:    "gen-code",
-		defLine: 27,
+		defLine: 30,
 		defCol:  9,
 		refs: []protocol.Range{
 			{
@@ -175,8 +175,8 @@ var taskTCs = []identTC{
 				End:   protocol.Position{Line: 10, Character: 22},
 			},
 			{
-				Start: protocol.Position{Line: 16, Character: 14},
-				End:   protocol.Position{Line: 16, Character: 22},
+				Start: protocol.Position{Line: 19, Character: 14},
+				End:   protocol.Position{Line: 19, Character: 22},
 			},
 		},
 	},
@@ -293,12 +293,12 @@ func TestDocFindReferences(t *testing.T) {
 			},
 			refs: []protocol.Range{
 				{
-					Start: protocol.Position{Line: 13, Character: 21},
-					End:   protocol.Position{Line: 13, Character: 27},
+					Start: protocol.Position{Line: 16, Character: 21},
+					End:   protocol.Position{Line: 16, Character: 27},
 				},
 				{
-					Start: protocol.Position{Line: 21, Character: 21},
-					End:   protocol.Position{Line: 21, Character: 27},
+					Start: protocol.Position{Line: 24, Character: 21},
+					End:   protocol.Position{Line: 24, Character: 27},
 				},
 			},
 		},

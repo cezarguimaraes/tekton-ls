@@ -9,6 +9,9 @@ spec:
     - name: gen-code
       taskRef:
         name: gen-code
+      parameters:
+      - name: paramet
+        value: foo
       workspaces:
         - name: source
           workspace: source
@@ -27,7 +30,7 @@ metadata:
   name: gen-code
 spec:
   parameters:
-  - name: param
+  - name: paramet
   results:
   - name: foo
   workspaces:
@@ -37,7 +40,7 @@ spec:
       image: busybox
       env:
       - name: FOO
-        value: $(params.param)
+        value: $(params.paramet)
       script: |
         #!/bin/sh
         echo $FOO > $(results.foo.path)
