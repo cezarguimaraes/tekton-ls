@@ -44,6 +44,8 @@ type File struct {
 type Document struct {
 	file.File
 
+	file *File
+
 	offset int
 	size   int
 
@@ -70,6 +72,8 @@ func ParseFile(f file.File) *File {
 	for i, doc := range r.ast.Docs {
 		d := &Document{
 			File: f,
+
+			file: r,
 			ast:  doc,
 
 			offset: r.LineOffset(doc.Body.GetToken().Position.Line - 1),
@@ -93,6 +97,27 @@ func ParseFile(f file.File) *File {
 	}
 
 	return r
+}
+
+func (f *File) getIdent(kind identifierKind, name string) *identifier {
+	ids := []*identifier{}
+	for _, d := range f.docs {
+		if id := d.getIdent(kind, name); id != nil {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) > 1 {
+		panic(
+			fmt.Errorf(
+				"file.getIdent(%s, %s) returned more than one identifier",
+				kind, name,
+			),
+		)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	return ids[0]
 }
 
 func (f *File) findDoc(pos protocol.Position) *Document {

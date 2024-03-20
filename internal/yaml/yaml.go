@@ -1,10 +1,7 @@
 package yaml
 
 import (
-	"fmt"
-
 	"github.com/goccy/go-yaml/ast"
-	"github.com/goccy/go-yaml/parser"
 	"github.com/goccy/go-yaml/token"
 )
 
@@ -66,7 +63,6 @@ func FindNode(node ast.Node, line, col int) ast.Node {
 
 		// tok.Position <= p && p <= nxt.Position
 		if !cmpPos(p, tok.Position) && !cmpPos(nxt.Position, p) {
-			fmt.Println("found")
 			res = n
 			// keep iterating to find the deepest node that contains the position
 			return true
@@ -75,19 +71,4 @@ func FindNode(node ast.Node, line, col int) ast.Node {
 		return true
 	}), node)
 	return res
-}
-
-func main() {
-	f, err := parser.ParseBytes(tst, 0)
-	if err != nil {
-		panic(err)
-	}
-	// toks := []*ast.Node
-
-	l := 15
-	c := 23
-
-	fmt.Println(FindNode(f.Docs[0], l, c))
-
-	return
 }

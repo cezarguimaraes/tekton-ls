@@ -169,6 +169,16 @@ var taskTCs = []identTC{
 		name:    "gen-code",
 		defLine: 27,
 		defCol:  9,
+		refs: []protocol.Range{
+			{
+				Start: protocol.Position{Line: 10, Character: 14},
+				End:   protocol.Position{Line: 10, Character: 22},
+			},
+			{
+				Start: protocol.Position{Line: 16, Character: 14},
+				End:   protocol.Position{Line: 16, Character: 22},
+			},
+		},
 	},
 }
 

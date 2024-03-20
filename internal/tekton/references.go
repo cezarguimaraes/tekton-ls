@@ -56,8 +56,8 @@ func (r *regexpRef) find(d *Document) {
 }
 
 type pathRef struct {
-	kind    identifierKind
 	path    *yaml.Path
+	depth   int
 	handler func(*Document, interface{}, ast.Node) []reference
 }
 
@@ -69,14 +69,13 @@ func (r *pathRef) find(d *Document) {
 		panic(err)
 	}
 
-	visitNodes(node, 2, func(n ast.Node) {
+	visitNodes(node, r.depth, func(n ast.Node) {
 		var v interface{}
 		_ = yaml.Unmarshal([]byte(n.String()), &v)
 
 		refs := r.handler(d, v, n)
 		for _, ref := range refs {
-			id := d.getIdent(r.kind, ref.name)
-			if id != nil {
+			if id := ref.ident; id != nil {
 				id.references = append(id.references, []protocol.Range{
 					{
 						Start: ref.start,
@@ -88,7 +87,6 @@ func (r *pathRef) find(d *Document) {
 					},
 				})
 			}
-			ref.ident = id
 			d.references = append(d.references, ref)
 		}
 	})
@@ -112,8 +110,8 @@ var references = []referenceResolver{
 		regex: regexp.MustCompile(`\$\(tasks\.(.*?)\.(.*?)\.(.*?)\)`),
 	},
 	&pathRef{
-		kind: IdentWorkspace,
-		path: mustPathString("$.spec.tasks[*].workspaces[*]"),
+		path:  mustPathString("$.spec.tasks[*].workspaces[*]"),
+		depth: 2,
 		handler: func(d *Document, v interface{}, node ast.Node) []reference {
 			vm := v.(map[string]interface{})
 			ws, ok := vm["workspace"]
@@ -137,7 +135,7 @@ var references = []referenceResolver{
 				{
 					kind:    IdentWorkspace,
 					name:    wsName,
-					ident:   nil,
+					ident:   d.getIdent(IdentWorkspace, wsName),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,
@@ -146,8 +144,8 @@ var references = []referenceResolver{
 		},
 	},
 	&pathRef{
-		kind: IdentPipelineTask,
-		path: mustPathString("$.spec.tasks[*].runAfter[*]"),
+		path:  mustPathString("$.spec.tasks[*].runAfter[*]"),
+		depth: 2,
 		handler: func(d *Document, v interface{}, node ast.Node) []reference {
 			s, ok := v.(string)
 			if !ok {
@@ -158,7 +156,28 @@ var references = []referenceResolver{
 				{
 					kind:    IdentPipelineTask,
 					name:    s,
-					ident:   nil,
+					ident:   d.getIdent(IdentPipelineTask, s),
+					start:   prange.Start,
+					end:     prange.End,
+					offsets: offsets,
+				},
+			}
+		},
+	},
+	&pathRef{
+		path:  mustPathString("$.spec.tasks[*].taskRef.name"),
+		depth: 1,
+		handler: func(d *Document, v interface{}, node ast.Node) []reference {
+			s, ok := v.(string)
+			if !ok {
+				return nil
+			}
+			prange, offsets := d.getNodeRange(node)
+			return []reference{
+				{
+					kind:    IdentTask,
+					name:    s,
+					ident:   d.file.getIdent(IdentTask, s),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,
