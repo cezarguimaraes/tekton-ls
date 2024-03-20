@@ -25,6 +25,8 @@ type reference struct {
 	kind identifierKind
 	name string
 
+	docURI string
+
 	offsets []int
 	start   protocol.Position
 	end     protocol.Position
@@ -34,6 +36,10 @@ type reference struct {
 
 type File struct {
 	file.File
+
+	workspace *Workspace
+
+	uri string
 
 	ast        *ast.File
 	parseError error
@@ -59,7 +65,7 @@ type Document struct {
 	references  []reference
 }
 
-func ParseFile(f file.File) *File {
+func NewFile(f file.File) *File {
 	r := &File{
 		File: f,
 	}
@@ -77,6 +83,9 @@ func ParseFile(f file.File) *File {
 			ast:  doc,
 
 			offset: r.LineOffset(doc.Body.GetToken().Position.Line - 1),
+
+			references:  []reference{},
+			identifiers: []*identifier{},
 		}
 		if i > 0 {
 			r.docs[i-1].size = d.offset - r.docs[i-1].offset
@@ -87,16 +96,29 @@ func ParseFile(f file.File) *File {
 		lst := r.docs[len(r.docs)-1]
 		lst.size = len(r.Bytes()) - lst.offset
 	}
+	return r
+}
 
-	for _, d := range r.docs {
-		d.parseIdentifiers()
-	}
+// used only for tests
+func ParseFile(f file.File) *File {
+	ws := NewWorkspace()
+	uri := "file://test.yaml"
+	ws.UpsertFile(uri, string(f))
+	ws.Lint()
 
-	for _, d := range r.docs {
+	return ws.File(uri)
+}
+
+func (f *File) solveReferences() {
+	for _, d := range f.docs {
 		d.solveReferences()
 	}
+}
 
-	return r
+func (f *File) solveIdentifiers() {
+	for _, d := range f.docs {
+		d.parseIdentifiers()
+	}
 }
 
 func (f *File) getIdent(kind identifierKind, name string) *identifier {
@@ -115,6 +137,7 @@ func (f *File) getIdent(kind identifierKind, name string) *identifier {
 		)
 	}
 	if len(ids) == 0 {
+		fmt.Println("looking for ident, not found", kind, name)
 		return nil
 	}
 	return ids[0]
@@ -135,7 +158,7 @@ func (f *File) Hover(pos protocol.Position) *string {
 	return f.findDoc(pos).hover(pos)
 }
 
-func (f *File) Rename(pos protocol.Position, newName string) ([]protocol.TextEdit, error) {
+func (f *File) Rename(pos protocol.Position, newName string) (*protocol.WorkspaceEdit, error) {
 	return f.findDoc(pos).rename(pos, newName)
 }
 
@@ -147,7 +170,7 @@ func (f *File) Definition(pos protocol.Position) *protocol.Range {
 	return f.findDoc(pos).definition(pos)
 }
 
-func (f *File) FindReferences(pos protocol.Position) []protocol.Range {
+func (f *File) FindReferences(pos protocol.Position) []protocol.Location {
 	return f.findDoc(pos).findReferences(pos)
 }
 

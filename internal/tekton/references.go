@@ -33,14 +33,20 @@ func (r *regexpRef) find(d *Document) {
 		start := d.OffsetPosition(match[0])
 		end := d.OffsetPosition(match[1])
 		if id != nil {
-			id.references = append(id.references, []protocol.Range{
+			id.references = append(id.references, []protocol.Location{
 				{
-					Start: start,
-					End:   end,
+					URI: d.file.uri,
+					Range: protocol.Range{
+						Start: start,
+						End:   end,
+					},
 				},
 				{
-					Start: d.OffsetPosition(match[2]),
-					End:   d.OffsetPosition(match[3]),
+					URI: d.file.uri,
+					Range: protocol.Range{
+						Start: d.OffsetPosition(match[2]),
+						End:   d.OffsetPosition(match[3]),
+					},
 				},
 			})
 		}
@@ -75,15 +81,22 @@ func (r *pathRef) find(d *Document) {
 
 		refs := r.handler(d, v, n)
 		for _, ref := range refs {
+			ref.docURI = d.file.uri
 			if id := ref.ident; id != nil {
-				id.references = append(id.references, []protocol.Range{
+				id.references = append(id.references, []protocol.Location{
 					{
-						Start: ref.start,
-						End:   ref.end,
+						URI: d.file.uri,
+						Range: protocol.Range{
+							Start: ref.start,
+							End:   ref.end,
+						},
 					},
 					{
-						Start: ref.start,
-						End:   ref.end,
+						URI: d.file.uri,
+						Range: protocol.Range{
+							Start: ref.start,
+							End:   ref.end,
+						},
 					},
 				})
 			}
@@ -177,7 +190,7 @@ var references = []referenceResolver{
 				{
 					kind:    IdentKindTask,
 					name:    s,
-					ident:   d.file.getIdent(IdentKindTask, s),
+					ident:   d.file.workspace.getIdent(IdentKindTask, s),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,
@@ -199,7 +212,7 @@ var references = []referenceResolver{
 					kind: IdentKindParam,
 					name: s,
 					// TODO: get param from the correct task :)
-					ident:   d.file.getIdent(IdentKindParam, s),
+					ident:   d.file.workspace.getIdent(IdentKindParam, s),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,
@@ -209,11 +222,11 @@ var references = []referenceResolver{
 	},
 }
 
-func wholeReferences(id *identifier) []protocol.Range {
+func wholeReferences(id *identifier) []protocol.Location {
 	if id == nil {
 		return nil
 	}
-	var refs []protocol.Range
+	var refs []protocol.Location
 	for _, ref := range id.references {
 		refs = append(refs, ref[0])
 	}
@@ -221,6 +234,7 @@ func wholeReferences(id *identifier) []protocol.Range {
 }
 
 func (d *Document) solveReferences() {
+	d.references = d.references[:0]
 	for _, ref := range references {
 		ref.find(d)
 	}
@@ -235,7 +249,7 @@ func (d *Document) findIdentifier(pos protocol.Position) *identifier {
 	return nil
 }
 
-func (d *Document) findReferences(pos protocol.Position) []protocol.Range {
+func (d *Document) findReferences(pos protocol.Position) []protocol.Location {
 	return wholeReferences(d.findIdentifier(pos))
 }
 

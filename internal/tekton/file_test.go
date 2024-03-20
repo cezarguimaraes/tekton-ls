@@ -60,7 +60,11 @@ func TestFileParseIdentifiers(t *testing.T) {
 				})
 			}
 			gotRefs := wholeReferences(id)
-			if !reflect.DeepEqual(gotRefs, wantRefs) {
+			ranges := []protocol.Range{}
+			for _, ref := range gotRefs {
+				ranges = append(ranges, ref.Range)
+			}
+			if !reflect.DeepEqual(ranges, wantRefs) {
 				t.Errorf("doc[%d].id[%d].references:\ngot %v\nwant %v", docId, i, gotRefs, wantRefs)
 			}
 		}

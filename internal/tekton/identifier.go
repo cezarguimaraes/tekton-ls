@@ -41,7 +41,7 @@ type identifier struct {
 	meta       Meta
 	definition ast.Node
 	prange     protocol.Range
-	references [][]protocol.Range
+	references [][]protocol.Location
 }
 
 func (d *Document) getIdent(kind identifierKind, name string) *identifier {
@@ -70,7 +70,7 @@ var identifiers = []struct {
 		listPath: mustPathString("$.spec.parameters[*]"),
 		depth:    1,
 		meta: func(s StringMap) Meta {
-			return Parameter(s)
+			return IdentParameter(s)
 		},
 	},
 	{
@@ -78,7 +78,7 @@ var identifiers = []struct {
 		listPath: mustPathString("$.spec.results[*]"),
 		depth:    1,
 		meta: func(s StringMap) Meta {
-			return Result(s)
+			return IdentResult(s)
 		},
 	},
 	{
@@ -86,7 +86,7 @@ var identifiers = []struct {
 		listPath: mustPathString("$.spec.workspaces[*]"),
 		depth:    1,
 		meta: func(s StringMap) Meta {
-			return Workspace(s)
+			return IdentWorkspace(s)
 		},
 	},
 	{
@@ -108,7 +108,7 @@ var identifiers = []struct {
 			if !ok || strings.ToLower(kind) != "task" {
 				return nil
 			}
-			return Task(s)
+			return IdentTask(s)
 		},
 	},
 }
@@ -129,7 +129,7 @@ func (d *Document) getNodeRange(node ast.Node) (r protocol.Range, offsets []int)
 }
 
 func (d *Document) parseIdentifiers() {
-	ids := []*identifier{}
+	d.identifiers = d.identifiers[:0]
 	for _, ident := range identifiers {
 		node := d.ast.Body
 		var err error
@@ -139,13 +139,6 @@ func (d *Document) parseIdentifiers() {
 				fmt.Fprintf(os.Stderr, "error listing ident %s: %v", ident.kind, err)
 				continue
 			}
-		}
-
-		if node == nil {
-			if ident.kind == IdentKindTask {
-				panic("aff")
-			}
-			continue
 		}
 
 		identMap := make(map[string]*identifier)
@@ -182,13 +175,11 @@ func (d *Document) parseIdentifiers() {
 				definition: nameNode,
 				prange:     defRange,
 			}
-			ids = append(ids, id)
+			d.identifiers = append(d.identifiers, id)
 
 			identMap[id.meta.Name()] = id
 		})
 	}
-
-	d.identifiers = ids
 }
 
 // TODO: move to yaml package

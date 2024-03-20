@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/cezarguimaraes/tekton-ls/internal/completion"
-	"github.com/cezarguimaraes/tekton-ls/internal/file"
 	"github.com/cezarguimaraes/tekton-ls/internal/tekton"
 	"github.com/tliron/commonlog"
 	"github.com/tliron/glsp"
@@ -21,12 +20,12 @@ type TektonHandler struct {
 
 	Log commonlog.Logger
 
-	files map[string]*tekton.File
+	workspace *tekton.Workspace
 }
 
 func NewTektonHandler() *TektonHandler {
 	th := &TektonHandler{
-		files: make(map[string]*tekton.File),
+		workspace: tekton.NewWorkspace(),
 	}
 	th.Handler = protocol.Handler{
 		Initialize:                th.initialize(),
@@ -63,11 +62,7 @@ func getDoc[T docTypes](th *TektonHandler, doc T) *tekton.File {
 	default:
 		panic("unknown document identifier type")
 	}
-	return th.getDoc(uri)
-}
-
-func (th *TektonHandler) getDoc(uri string) *tekton.File {
-	return th.files[uri]
+	return th.workspace.File(uri)
 }
 
 func (th *TektonHandler) publishDiagnostics(context *glsp.Context, doc protocol.VersionedTextDocumentIdentifier) error {
@@ -104,6 +99,11 @@ func (th *TektonHandler) initialize() protocol.InitializeFunc {
 			"(",
 		}
 
+		// TODO: support rootUri and rootPath as well
+		for _, folder := range params.WorkspaceFolders {
+			th.workspace.AddFolder(folder.URI)
+		}
+
 		ver := version
 		return protocol.InitializeResult{
 			Capabilities: capabilities,
@@ -117,9 +117,8 @@ func (th *TektonHandler) initialize() protocol.InitializeFunc {
 
 func (th *TektonHandler) docOpen() protocol.TextDocumentDidOpenFunc {
 	return func(context *glsp.Context, params *protocol.DidOpenTextDocumentParams) error {
-		th.files[params.TextDocument.URI] = tekton.ParseFile(
-			file.File(params.TextDocument.Text),
-		)
+		th.workspace.UpsertFile(params.TextDocument.URI, params.TextDocument.Text)
+		th.workspace.Lint()
 		return th.publishDiagnostics(context, protocol.VersionedTextDocumentIdentifier{
 			TextDocumentIdentifier: protocol.TextDocumentIdentifier{
 				URI: params.TextDocument.URI,
@@ -134,9 +133,11 @@ func (th *TektonHandler) docChange() protocol.TextDocumentDidChangeFunc {
 		if len(params.ContentChanges) != 1 {
 			return fmt.Errorf("expected event to contain a single ContentChange")
 		}
-		th.files[params.TextDocument.URI] = tekton.ParseFile(file.File(
+		th.workspace.UpsertFile(
+			params.TextDocument.URI,
 			params.ContentChanges[0].(protocol.TextDocumentContentChangeEventWhole).Text,
-		))
+		)
+		th.workspace.Lint()
 		return th.publishDiagnostics(context, params.TextDocument)
 	}
 }

@@ -1,16 +1,16 @@
 package tekton
 
-type Task StringMap
+type IdentTask StringMap
 
 var _ Meta = PipelineTask{}
 
-func (p Task) Completions() []completion {
+func (p IdentTask) Completions() []completion {
 	return []completion{
 		{},
 	}
 }
 
-func (p Task) Name() string {
+func (p IdentTask) Name() string {
 	meta, ok := StringMap(p)["metadata"].(map[string]interface{})
 	if !ok {
 		return ""
@@ -19,6 +19,6 @@ func (p Task) Name() string {
 	return n
 }
 
-func (p Task) Documentation() string {
+func (p IdentTask) Documentation() string {
 	return ""
 }

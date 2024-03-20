@@ -17,25 +17,28 @@ func (d *Document) prepareRename(pos protocol.Position) *protocol.Range {
 func (d *Document) rename(
 	pos protocol.Position,
 	newName string,
-) ([]protocol.TextEdit, error) {
+) (*protocol.WorkspaceEdit, error) {
 	// maybe support renaming from references as well?
 	id := d.findIdentifier(pos)
 	if id == nil {
 		return nil, fmt.Errorf("nothing to rename")
 	}
 
-	es := []protocol.TextEdit{
-		{
+	changes := map[string][]protocol.TextEdit{}
+	changes[d.file.uri] = append(changes[d.file.uri],
+		protocol.TextEdit{
 			Range:   id.prange,
 			NewText: newName,
 		},
-	}
+	)
 	for _, ref := range id.references {
-		es = append(es, protocol.TextEdit{
-			Range:   ref[1],
-			NewText: newName,
-		})
+		changes[ref[1].URI] = append(changes[ref[1].URI],
+			protocol.TextEdit{
+				Range:   ref[1].Range,
+				NewText: newName,
+			},
+		)
 	}
 
-	return es, nil
+	return &protocol.WorkspaceEdit{Changes: changes}, nil
 }
