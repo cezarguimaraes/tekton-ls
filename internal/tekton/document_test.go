@@ -26,7 +26,7 @@ type identTC struct {
 
 var singleTCs = []identTC{
 	{
-		kind:    IdentParam,
+		kind:    IdentKindParam,
 		name:    "foo",
 		defLine: 7,
 		defCol:  11,
@@ -38,14 +38,14 @@ var singleTCs = []identTC{
 		},
 	},
 	{
-		kind:    IdentParam,
+		kind:    IdentKindParam,
 		name:    "b",
 		defLine: 10,
 		defCol:  11,
 		refs:    nil,
 	},
 	{
-		kind:    IdentParam,
+		kind:    IdentKindParam,
 		name:    "baz",
 		defLine: 11,
 		defCol:  11,
@@ -57,7 +57,7 @@ var singleTCs = []identTC{
 		},
 	},
 	{
-		kind:    IdentResult,
+		kind:    IdentKindResult,
 		name:    "foo",
 		defLine: 14,
 		defCol:  11,
@@ -77,7 +77,7 @@ var singleTCs = []identTC{
 		},
 	},
 	{
-		kind:    IdentWorkspace,
+		kind:    IdentKindWorkspace,
 		name:    "test",
 		defLine: 16,
 		defCol:  11,
@@ -89,7 +89,7 @@ var singleTCs = []identTC{
 		},
 	},
 	{
-		kind:    IdentTask,
+		kind:    IdentKindTask,
 		name:    "hello",
 		defLine: 4,
 		defCol:  9,
@@ -98,7 +98,7 @@ var singleTCs = []identTC{
 
 var pipeTCs = []identTC{
 	{
-		kind:    IdentWorkspace,
+		kind:    IdentKindWorkspace,
 		name:    "source",
 		defLine: 7,
 		defCol:  13,
@@ -114,7 +114,7 @@ var pipeTCs = []identTC{
 		},
 	},
 	{
-		kind:    IdentPipelineTask,
+		kind:    IdentKindPipelineTask,
 		name:    "gen-code",
 		defLine: 9,
 		defCol:  13,
@@ -126,7 +126,7 @@ var pipeTCs = []identTC{
 		},
 	},
 	{
-		kind:    IdentPipelineTask,
+		kind:    IdentKindPipelineTask,
 		name:    "gen-code-2",
 		defLine: 18,
 		defCol:  13,
@@ -135,19 +135,23 @@ var pipeTCs = []identTC{
 
 var taskTCs = []identTC{
 	{
-		kind:    IdentParam,
-		name:    "param",
+		kind:    IdentKindParam,
+		name:    "paramet",
 		defLine: 33,
 		defCol:  11,
 		refs: []protocol.Range{
 			{
-				Start: protocol.Position{Line: 39, Character: 15},
-				End:   protocol.Position{Line: 39, Character: 30},
+				Start: protocol.Position{Line: 12, Character: 14},
+				End:   protocol.Position{Line: 12, Character: 21},
+			},
+			{
+				Start: protocol.Position{Line: 42, Character: 15},
+				End:   protocol.Position{Line: 42, Character: 32},
 			},
 		},
 	},
 	{
-		kind:    IdentResult,
+		kind:    IdentKindResult,
 		name:    "foo",
 		defLine: 35,
 		defCol:  11,
@@ -159,13 +163,13 @@ var taskTCs = []identTC{
 		},
 	},
 	{
-		kind:    IdentWorkspace,
+		kind:    IdentKindWorkspace,
 		name:    "source",
 		defLine: 37,
 		defCol:  11,
 	},
 	{
-		kind:    IdentTask,
+		kind:    IdentKindTask,
 		name:    "gen-code",
 		defLine: 30,
 		defCol:  9,

@@ -13,24 +13,24 @@ import (
 type identifierKind int
 
 const (
-	IdentParam identifierKind = iota
-	IdentResult
-	IdentWorkspace
-	IdentPipelineTask
-	IdentTask
+	IdentKindParam identifierKind = iota
+	IdentKindResult
+	IdentKindWorkspace
+	IdentKindPipelineTask
+	IdentKindTask
 )
 
 func (k identifierKind) String() string {
 	switch k {
-	case IdentParam:
+	case IdentKindParam:
 		return "parameter"
-	case IdentResult:
+	case IdentKindResult:
 		return "result"
-	case IdentWorkspace:
+	case IdentKindWorkspace:
 		return "workspace"
-	case IdentPipelineTask:
+	case IdentKindPipelineTask:
 		return "pipelineTask"
-	case IdentTask:
+	case IdentKindTask:
 		return "task"
 	}
 	return ""
@@ -66,7 +66,7 @@ var identifiers = []struct {
 	namePath *yaml.Path // optional
 }{
 	{
-		kind:     IdentParam,
+		kind:     IdentKindParam,
 		listPath: mustPathString("$.spec.parameters[*]"),
 		depth:    1,
 		meta: func(s StringMap) Meta {
@@ -74,7 +74,7 @@ var identifiers = []struct {
 		},
 	},
 	{
-		kind:     IdentResult,
+		kind:     IdentKindResult,
 		listPath: mustPathString("$.spec.results[*]"),
 		depth:    1,
 		meta: func(s StringMap) Meta {
@@ -82,7 +82,7 @@ var identifiers = []struct {
 		},
 	},
 	{
-		kind:     IdentWorkspace,
+		kind:     IdentKindWorkspace,
 		listPath: mustPathString("$.spec.workspaces[*]"),
 		depth:    1,
 		meta: func(s StringMap) Meta {
@@ -90,7 +90,7 @@ var identifiers = []struct {
 		},
 	},
 	{
-		kind:     IdentPipelineTask,
+		kind:     IdentKindPipelineTask,
 		listPath: mustPathString("$.spec.tasks[*]"),
 		depth:    1,
 		meta: func(s StringMap) Meta {
@@ -98,7 +98,7 @@ var identifiers = []struct {
 		},
 	},
 	{
-		kind: IdentTask,
+		kind: IdentKindTask,
 		// $ path does not work, so we handle listPath == nil and don't filter
 		// listPath: mustPathString("$"),
 		namePath: mustPathString("$.metadata.name"),
@@ -142,7 +142,7 @@ func (d *Document) parseIdentifiers() {
 		}
 
 		if node == nil {
-			if ident.kind == IdentTask {
+			if ident.kind == IdentKindTask {
 				panic("aff")
 			}
 			continue

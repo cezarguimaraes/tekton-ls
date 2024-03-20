@@ -94,19 +94,19 @@ func (r *pathRef) find(d *Document) {
 
 var references = []referenceResolver{
 	&regexpRef{
-		kind:  IdentParam,
+		kind:  IdentKindParam,
 		regex: regexp.MustCompile(`\$\(params\.(.*?)\)`),
 	},
 	&regexpRef{
-		kind:  IdentResult,
+		kind:  IdentKindResult,
 		regex: regexp.MustCompile(`\$\(results\.(.*?)\.(.*?)\)`),
 	},
 	&regexpRef{
-		kind:  IdentWorkspace,
+		kind:  IdentKindWorkspace,
 		regex: regexp.MustCompile(`\$\(workspaces\.(.*?)\.(.*?)\)`),
 	},
 	&regexpRef{
-		kind:  IdentPipelineTask,
+		kind:  IdentKindPipelineTask,
 		regex: regexp.MustCompile(`\$\(tasks\.(.*?)\.(.*?)\.(.*?)\)`),
 	},
 	&pathRef{
@@ -133,9 +133,9 @@ var references = []referenceResolver{
 			prange, offsets := d.getNodeRange(nameNode)
 			return []reference{
 				{
-					kind:    IdentWorkspace,
+					kind:    IdentKindWorkspace,
 					name:    wsName,
-					ident:   d.getIdent(IdentWorkspace, wsName),
+					ident:   d.getIdent(IdentKindWorkspace, wsName),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,
@@ -154,9 +154,9 @@ var references = []referenceResolver{
 			prange, offsets := d.getNodeRange(node)
 			return []reference{
 				{
-					kind:    IdentPipelineTask,
+					kind:    IdentKindPipelineTask,
 					name:    s,
-					ident:   d.getIdent(IdentPipelineTask, s),
+					ident:   d.getIdent(IdentKindPipelineTask, s),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,
@@ -175,9 +175,9 @@ var references = []referenceResolver{
 			prange, offsets := d.getNodeRange(node)
 			return []reference{
 				{
-					kind:    IdentTask,
+					kind:    IdentKindTask,
 					name:    s,
-					ident:   d.file.getIdent(IdentTask, s),
+					ident:   d.file.getIdent(IdentKindTask, s),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,
@@ -196,10 +196,10 @@ var references = []referenceResolver{
 			prange, offsets := d.getNodeRange(node)
 			return []reference{
 				{
-					kind: IdentParam,
+					kind: IdentKindParam,
 					name: s,
 					// TODO: get param from the correct task :)
-					ident:   d.file.getIdent(IdentParam, s),
+					ident:   d.file.getIdent(IdentKindParam, s),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,
