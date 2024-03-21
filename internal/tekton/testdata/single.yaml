@@ -3,7 +3,7 @@ kind: Task
 metadata:
   name: hello
 spec:
-  parameters:
+  params:
   - name: foo
     description: "my param foo meant for stuff"
     default: "hey"

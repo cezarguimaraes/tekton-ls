@@ -2,6 +2,8 @@ package tekton
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/cezarguimaraes/tekton-ls/internal/file"
 	"github.com/goccy/go-yaml"
@@ -65,12 +67,18 @@ type Document struct {
 	references  []reference
 }
 
+var helmSanitizerRegexp = regexp.MustCompile(`{{.*?}}`)
+
 func NewFile(f file.File) *File {
 	r := &File{
 		File: f,
 	}
 
-	r.ast, r.parseError = parser.ParseBytes(f.Bytes(), 0)
+	sanitized := helmSanitizerRegexp.ReplaceAllFunc(f.Bytes(), func(src []byte) []byte {
+		return []byte(strings.Repeat("x", len(src)))
+	})
+
+	r.ast, r.parseError = parser.ParseBytes(sanitized, 0)
 	// document separator -- is not considered parse error
 	if r.parseError != nil {
 		return r

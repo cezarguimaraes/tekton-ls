@@ -26,7 +26,7 @@ func (d *Document) completions(pos protocol.Position) []fmt.Stringer {
 				// contextual completion
 				ctx, err := c.context.FilterNode(d.ast.Body)
 				if err != nil {
-					panic(err)
+					continue
 				}
 				if ctx == nil {
 					continue

@@ -9,7 +9,7 @@ spec:
     - name: gen-code
       taskRef:
         name: gen-code
-      parameters:
+      params:
       - name: paramet
         value: foo
       workspaces:

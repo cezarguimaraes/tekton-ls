@@ -65,7 +65,7 @@ var identifiers = []struct {
 }{
 	{
 		kind:     IdentKindParam,
-		listPath: mustPathString("$.spec.parameters[*]"),
+		listPath: mustPathString("$.spec.params[*]"),
 		depth:    1,
 		meta: func(s StringMap) Meta {
 			return IdentParameter(s)
@@ -137,6 +137,7 @@ func (d *Document) parseIdentifiers() {
 				continue
 			}
 		}
+		ident := ident
 
 		identMap := make(map[string]*identifier)
 		visitNodes(node, ident.depth, func(n ast.Node) {
@@ -162,7 +163,9 @@ func (d *Document) parseIdentifiers() {
 
 			nameNode, err := namePath.FilterNode(n)
 			if err != nil {
-				panic("should never happen")
+				// TODO: include a diagnostic when this kind of error happens
+				// or use another yaml parser to identify these errors beforehand
+				return
 			}
 
 			defRange, _ := d.getNodeRange(nameNode)

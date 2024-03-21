@@ -3,7 +3,7 @@ kind: Task
 metadata:
   name: gen-code
 spec:
-  parameters:
+  params:
   - name: paramet
   results:
   - name: foo

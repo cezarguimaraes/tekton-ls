@@ -10,7 +10,7 @@ kind: Task
 metadata:
   name: hello
 spec:
-  parameters:
+  params:
   - name: foo
     default: "hey"
   steps:

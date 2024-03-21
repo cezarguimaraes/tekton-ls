@@ -140,7 +140,7 @@ var references = []referenceResolver{
 
 			nameNode, err := namePath.FilterNode(node)
 			if err != nil {
-				panic("should never happen")
+				return nil
 			}
 
 			prange, offsets := d.getNodeRange(nameNode)
@@ -199,7 +199,7 @@ var references = []referenceResolver{
 		},
 	},
 	&pathRef{
-		path:  mustPathString("$.spec.tasks[*].parameters[*].name"),
+		path:  mustPathString("$.spec.tasks[*].params[*].name"),
 		depth: 2,
 		handler: func(d *Document, v interface{}, node ast.Node) []reference {
 			s, ok := v.(string)

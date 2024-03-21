@@ -9,7 +9,7 @@ spec:
     - name: gen-code
       taskRef:
         name: gen-code
-      parameters:
+      params:
       - name: paramet
         value: foo
       workspaces:
@@ -29,7 +29,7 @@ kind: Task
 metadata:
   name: gen-code
 spec:
-  parameters:
+  params:
   - name: paramet
   results:
   - name: foo
@@ -45,3 +45,59 @@ spec:
         #!/bin/sh
         echo $FOO > $(results.foo.path)
 
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: git-clone-v1
+  description: Clone a git repository from a specific commit SHA and returns the path of the directory containing the cloned source code.
+spec:
+  workspaces:
+    - name: output
+      description: The git repo will be cloned onto this workspace.
+  params:
+    - name: gitRepositoryName
+      description: Repository name (e.g. dk-hub) to be cloned from.
+    - name: gitRepositoryOwner
+      description: Repository owner (e.g. vtex) to be cloned from.
+    - name: commitSha
+      description: Commit SHA to be cloned from.
+      type: string
+  results:
+    - name: project-path
+      description: The path to the cloned repository relative to the output workspace root
+  steps:
+    - name: clone
+      image: {{ .Values.toolkit.image }}:{{ .Values.toolkit.tag }}
+      env:
+      - name: REPOSITORY_NAME
+        value: $(params.gitRepositoryName)
+      - name: OWNER_NAME
+        value: $(params.gitRepositoryOwner)
+      - name: COMMIT_SHA
+        value: $(params.commitSha)
+      - name: CLONE_PATH
+        value: $(workspaces.output.path)
+      - name: PROJECT_PATH__TEKTON_RESULT
+        value: $(results.project-path.path)
+      - name: DK_CICD_GITHUB_PK
+        valueFrom:
+          secretKeyRef:
+            name: dk-cicd-secrets
+            key: dk-cicd-github-app-pk
+      - name: DK_CICD_GITHUB_INSTALLATION_ID
+        valueFrom:
+          secretKeyRef:
+            name: dk-cicd-secrets
+            key: dk-cicd-github-app-installation-id
+      - name: DK_CICD_GITHUB_APP_ID
+        valueFrom:
+          secretKeyRef:
+            name: dk-cicd-secrets
+            key: dk-cicd-github-app-id
+      command:
+        - yarn
+      args:
+        - cli
+        - github
+        - clone
