@@ -7,7 +7,7 @@ import (
 )
 
 func TestDocDiagnostics(t *testing.T) {
-	_ = ParseFile(file.File(string(pipelineDoc)))
+	_ = ParseFile(file.TextDocument(string(pipelineDoc)))
 
 	// f.Diagnostics()
 

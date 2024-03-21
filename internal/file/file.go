@@ -6,11 +6,13 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-// TODO: stop stuttering
-type File string
+// TextDocument provides operations on a string representing the contents
+// of a file.
+type TextDocument string
 
-// TODO: improve this, text editor lib?
-func (f File) GetLine(line uint32) string {
+// GetLine returns the string corresponding to the given line in the text.
+func (f TextDocument) GetLine(line uint32) string {
+	// TODO: improve this, text editor lib?
 	lines := strings.Split(string(f), "\n")
 	if line >= uint32(len(lines)) {
 		return ""
@@ -18,28 +20,22 @@ func (f File) GetLine(line uint32) string {
 	return lines[line]
 }
 
-func (f File) Bytes() []byte {
+func (f TextDocument) Bytes() []byte {
 	return []byte(string(f))
 }
 
-func (f File) getContext(pos protocol.Position, c int) string {
-	line := f.GetLine(pos.Line)
-	from := max(0, int(pos.Character)-c)
-	return line[from:pos.Character]
-}
-
-func (f File) HasContext(pos protocol.Position, ctx string) bool {
-	return f.getContext(pos, len(ctx)) == ctx
-}
-
-func (f File) FindPrevious(c string, pos protocol.Position) int {
+// FindPrevious finds the first position to the left of `pos` which contains
+// any of the characters in `c`
+func (f TextDocument) FindPrevious(c string, pos protocol.Position) int {
 	line := f.GetLine(pos.Line)
 	n := min(len(line), int(pos.Character))
 	return strings.LastIndexAny(line[0:n], c)
 }
 
-// TODO: optimize
-func (f File) OffsetPosition(offset int) protocol.Position {
+// OffsetPosition returns the position in the file corresponding to the given
+// offset.
+func (f TextDocument) OffsetPosition(offset int) protocol.Position {
+	// TODO: optimize
 	s := string(f)
 	line := uint32(0)
 	column := uint32(0)
@@ -56,7 +52,9 @@ func (f File) OffsetPosition(offset int) protocol.Position {
 	}
 }
 
-func (f File) LineOffset(line int) int {
+// LineOffset returns the offset corresponding to the first character of
+// the given line.
+func (f TextDocument) LineOffset(line int) int {
 	s := []byte(string(f))
 	offset := 0
 	for line > 0 && offset < len(s) {
@@ -68,6 +66,7 @@ func (f File) LineOffset(line int) int {
 	return offset
 }
 
-func (f File) PositionOffset(pos protocol.Position) int {
+// PositionOffset returns the offset corresponding to the given position.
+func (f TextDocument) PositionOffset(pos protocol.Position) int {
 	return f.LineOffset(int(pos.Line)) + int(pos.Character)
 }

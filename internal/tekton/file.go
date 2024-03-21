@@ -38,7 +38,7 @@ type reference struct {
 }
 
 type File struct {
-	file.File
+	file.TextDocument
 
 	workspace *Workspace
 
@@ -53,7 +53,7 @@ type File struct {
 }
 
 type Document struct {
-	file.File
+	file.TextDocument
 
 	file *File
 
@@ -72,9 +72,9 @@ type Document struct {
 
 var helmSanitizerRegexp = regexp.MustCompile(`{{.*?}}`)
 
-func NewFile(f file.File) *File {
+func NewFile(f file.TextDocument) *File {
 	r := &File{
-		File: f,
+		TextDocument: f,
 	}
 
 	sanitized := helmSanitizerRegexp.ReplaceAllFunc(f.Bytes(), func(src []byte) []byte {
@@ -89,7 +89,7 @@ func NewFile(f file.File) *File {
 
 	for i, doc := range r.ast.Docs {
 		d := &Document{
-			File: f,
+			TextDocument: f,
 
 			file: r,
 			ast:  doc,
@@ -112,7 +112,7 @@ func NewFile(f file.File) *File {
 }
 
 // used only for tests
-func ParseFile(f file.File) *File {
+func ParseFile(f file.TextDocument) *File {
 	ws := NewWorkspace()
 	uri := "file://test.yaml"
 	ws.UpsertFile(uri, string(f))

@@ -187,8 +187,8 @@ var taskTCs = []identTC{
 }
 
 func TestDocParseIdentifiers(t *testing.T) {
-	single := ParseFile(file.File(string(singleDoc)))
-	pipe := ParseFile(file.File(string(pipelineDoc)))
+	single := ParseFile(file.TextDocument(string(singleDoc)))
+	pipe := ParseFile(file.TextDocument(string(pipelineDoc)))
 
 	tcs := []struct {
 		name  string
@@ -252,8 +252,8 @@ func TestDocParseIdentifiers(t *testing.T) {
 }
 
 func TestDocFindReferences(t *testing.T) {
-	f := ParseFile(file.File(string(singleDoc)))
-	p := ParseFile(file.File(string(pipelineDoc)))
+	f := ParseFile(file.TextDocument(string(singleDoc)))
+	p := ParseFile(file.TextDocument(string(pipelineDoc)))
 
 	single := f.docs[0]
 	pipe := p.docs[0]
@@ -332,12 +332,12 @@ spec:
 		},
 	}
 	for _, tc := range tc {
-		_ = ParseFile(file.File(tc.contents))
+		_ = ParseFile(file.TextDocument(tc.contents))
 	}
 }
 
 func TestDocFindDefinition(t *testing.T) {
-	f := ParseFile(file.File(string(singleDoc)))
+	f := ParseFile(file.TextDocument(string(singleDoc)))
 	pos := protocol.Position{
 		Line:      25,
 		Character: 20,

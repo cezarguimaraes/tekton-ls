@@ -45,7 +45,7 @@ func (w *Workspace) UpsertFile(uri string, text string) {
 		delete(w.files, uri)
 	}
 
-	f := NewFile(file.File(text))
+	f := NewFile(file.TextDocument(text))
 	f.workspace = w
 	f.uri = uri
 	f.solveIdentifiers()
@@ -131,7 +131,7 @@ func (w *Workspace) AddFolder(uri string) {
 						return
 					}
 					uri := "file://" + path
-					f := NewFile(file.File(string(d)))
+					f := NewFile(file.TextDocument(string(d)))
 					f.uri = uri
 					f.workspace = w
 					c <- f
