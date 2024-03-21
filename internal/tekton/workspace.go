@@ -90,6 +90,7 @@ func (w *Workspace) Rename(docUri string, pos protocol.Position, newName string)
 func (w *Workspace) Diagnostics() []protocol.PublishDiagnosticsParams {
 	var dgs []protocol.PublishDiagnosticsParams
 	for _, f := range w.files {
+		// TODO: keep track of and include file version
 		dgs = append(dgs, protocol.PublishDiagnosticsParams{
 			URI:         f.uri,
 			Diagnostics: f.Diagnostics(),

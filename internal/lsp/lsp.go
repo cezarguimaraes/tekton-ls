@@ -40,6 +40,7 @@ func NewTektonHandler() *TektonHandler {
 		TextDocumentReferences:    th.references(),
 		TextDocumentPrepareRename: th.prepareRename(),
 		TextDocumentRename:        th.rename(),
+		// TODO: register workspace watch and listen for changes
 	}
 	return th
 }
@@ -66,6 +67,7 @@ func getDoc[T docTypes](th *TektonHandler, doc T) *tekton.File {
 }
 
 func (th *TektonHandler) publishDiagnostics(context *glsp.Context) error {
+	// TODO: publish diagnostics incrementally (per file)
 	dgs := th.workspace.Diagnostics()
 	for _, dg := range dgs {
 		context.Notify(protocol.ServerTextDocumentPublishDiagnostics, dg)
