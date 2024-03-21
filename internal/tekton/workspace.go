@@ -26,10 +26,61 @@ func (w *Workspace) File(uri string) *File {
 }
 
 func (w *Workspace) UpsertFile(uri string, text string) {
+	recalculate := make(map[string]struct{})
+
+	prev, ok := w.files[uri]
+	if ok {
+		// any references to identifiers in the previous version
+		// must be recalculated
+		for _, doc := range prev.docs {
+			for _, id := range doc.identifiers {
+				for _, refs := range id.references {
+					if refs[0].URI == uri {
+						continue
+					}
+					recalculate[refs[0].URI] = struct{}{}
+				}
+			}
+		}
+		delete(w.files, uri)
+	}
+
 	f := NewFile(file.File(text))
 	f.workspace = w
 	f.uri = uri
+	f.solveIdentifiers()
+
+	// similarly, we need to locate any dangling outside references that might
+	// be satisfied by any new identifiers in the current file
+	names := make(map[string]struct{})
+	for _, doc := range f.docs {
+		for _, id := range doc.identifiers {
+			names[id.meta.Name()] = struct{}{}
+		}
+	}
+
+	for name := range names {
+		for _, uri := range w.filesWithDanglingRefs(name) {
+			recalculate[uri] = struct{}{}
+		}
+	}
+
 	w.files[uri] = f
+	f.solveReferences()
+
+	for uri := range recalculate {
+		w.files[uri].solveReferences()
+	}
+}
+
+func (w *Workspace) filesWithDanglingRefs(name string) []string {
+	var rs []string
+	for _, f := range w.files {
+		if _, ok := f.danglingRefs[name]; ok {
+			rs = append(rs, f.uri)
+		}
+	}
+	return rs
 }
 
 func (w *Workspace) Lint() {

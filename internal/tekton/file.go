@@ -48,6 +48,8 @@ type File struct {
 	parseError error
 
 	docs []*Document
+
+	danglingRefs map[string]struct{}
 }
 
 type Document struct {
@@ -123,6 +125,7 @@ func (f *File) solveReferences() {
 	if f.parseError != nil {
 		return
 	}
+	f.danglingRefs = map[string]struct{}{}
 	for _, d := range f.docs {
 		d.solveReferences()
 	}

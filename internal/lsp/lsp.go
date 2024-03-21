@@ -96,6 +96,7 @@ func (th *TektonHandler) initialize() protocol.InitializeFunc {
 		for _, folder := range params.WorkspaceFolders {
 			th.workspace.AddFolder(folder.URI)
 		}
+		th.workspace.Lint()
 
 		ver := version
 		return protocol.InitializeResult{
@@ -111,7 +112,6 @@ func (th *TektonHandler) initialize() protocol.InitializeFunc {
 func (th *TektonHandler) docOpen() protocol.TextDocumentDidOpenFunc {
 	return func(context *glsp.Context, params *protocol.DidOpenTextDocumentParams) error {
 		th.workspace.UpsertFile(params.TextDocument.URI, params.TextDocument.Text)
-		th.workspace.Lint()
 		return th.publishDiagnostics(context)
 	}
 }
@@ -125,7 +125,6 @@ func (th *TektonHandler) docChange() protocol.TextDocumentDidChangeFunc {
 			params.TextDocument.URI,
 			params.ContentChanges[0].(protocol.TextDocumentContentChangeEventWhole).Text,
 		)
-		th.workspace.Lint()
 		return th.publishDiagnostics(context)
 	}
 }

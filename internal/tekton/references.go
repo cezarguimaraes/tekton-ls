@@ -49,6 +49,8 @@ func (r *regexpRef) find(d *Document) {
 					},
 				},
 			})
+		} else {
+			d.file.danglingRefs[name] = struct{}{}
 		}
 		d.references = append(d.references, reference{
 			kind:    r.kind,
@@ -99,7 +101,10 @@ func (r *pathRef) find(d *Document) {
 						},
 					},
 				})
+			} else {
+				d.file.danglingRefs[ref.name] = struct{}{}
 			}
+
 			d.references = append(d.references, ref)
 		}
 	})
@@ -130,6 +135,8 @@ func (r *pathRef2) find(d *Document) {
 					id.references,
 					[]protocol.Location{loc, loc},
 				)
+			} else {
+				d.file.danglingRefs[ref.name] = struct{}{}
 			}
 			d.references = append(d.references, ref)
 		}
