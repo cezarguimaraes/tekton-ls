@@ -139,7 +139,7 @@ func (r *pathRef2) find(d *Document) {
 var references = []referenceResolver{
 	&regexpRef{
 		kind:  IdentKindParam,
-		regex: regexp.MustCompile(`\$\(params\.(.*?)\)`),
+		regex: regexp.MustCompile(`\$\(params\.(.*?)(\[\*\])?\)`),
 	},
 	&regexpRef{
 		kind:  IdentKindResult,

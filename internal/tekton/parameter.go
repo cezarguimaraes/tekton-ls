@@ -39,11 +39,21 @@ func IdentParameter(v StringMap, parent interface{}) *identParam {
 var _ Meta = &identParam{}
 
 func (p *identParam) Completions() []completion {
-	return []completion{
-		{
-			text: fmt.Sprintf("$(params.%s)", p.Name()),
-		},
+	cs := []completion{}
+	if p.Type() == "array" {
+		cs = append(cs,
+			completion{
+				text: fmt.Sprintf("$(params.%s[*])", p.Name()),
+			},
+		)
+	} else {
+		cs = append(cs,
+			completion{
+				text: fmt.Sprintf("$(params.%s)", p.Name()),
+			},
+		)
 	}
+	return cs
 }
 
 func (p *identParam) Name() string {
