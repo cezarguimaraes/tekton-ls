@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/cezarguimaraes/tekton-ls/internal/file"
 	protocol "github.com/tliron/glsp/protocol_3_16"
@@ -32,40 +33,68 @@ func (w *Workspace) UpsertFile(uri string, text string) {
 }
 
 func (w *Workspace) Lint() {
+	var wg sync.WaitGroup
 	for _, f := range w.files {
-		f.solveIdentifiers()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			f.solveIdentifiers()
+		}()
 	}
+	wg.Wait()
 	for _, f := range w.files {
-		f.solveReferences()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			f.solveReferences()
+		}()
 	}
+	wg.Wait()
 }
 
 func (w *Workspace) AddFolder(uri string) {
 	base := strings.TrimPrefix(uri, "file://")
-	// TODO: change to walkdir
-	filepath.Walk(
-		base,
-		func(path string, info fs.FileInfo, err error) error {
-			if info.IsDir() {
+	c := make(chan *File)
+	go func() {
+		var wg sync.WaitGroup
+		filepath.WalkDir(
+			base,
+			func(path string, de fs.DirEntry, err error) error {
+				if de.IsDir() {
+					return nil
+				}
+				if err != nil {
+					return nil
+				}
+				ext := filepath.Ext(path)
+				if ext != ".yaml" && ext != ".yml" {
+					return nil
+				}
+
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					d, err := os.ReadFile(path)
+					if err != nil {
+						// TODO: report errors
+						return
+					}
+					uri := "file://" + path
+					f := NewFile(file.File(string(d)))
+					f.uri = uri
+					f.workspace = w
+					c <- f
+				}()
 				return nil
-			}
-			if err != nil {
-				return nil
-			}
-			ext := filepath.Ext(path)
-			if ext != ".yaml" && ext != ".yml" {
-				return nil
-			}
-			d, err := os.ReadFile(path)
-			if err != nil {
-				// TODO: report errors
-				return nil
-			}
-			uri := "file://" + path
-			w.UpsertFile(uri, string(d))
-			return nil
-		},
-	)
+			},
+		)
+		wg.Wait()
+		close(c)
+	}()
+
+	for f := range c {
+		w.files[f.uri] = f
+	}
 }
 
 // TODO: add diagnostic for when there are multiple idents
@@ -87,14 +116,18 @@ func (w *Workspace) Rename(docUri string, pos protocol.Position, newName string)
 	return w.File(docUri).Rename(pos, newName)
 }
 
-func (w *Workspace) Diagnostics() []protocol.PublishDiagnosticsParams {
-	var dgs []protocol.PublishDiagnosticsParams
+func (w *Workspace) Diagnostics(cb func(protocol.PublishDiagnosticsParams)) {
+	var wg sync.WaitGroup
 	for _, f := range w.files {
 		// TODO: keep track of and include file version
-		dgs = append(dgs, protocol.PublishDiagnosticsParams{
-			URI:         f.uri,
-			Diagnostics: f.Diagnostics(),
-		})
+		go func() {
+			wg.Add(1)
+			defer wg.Done()
+			cb(protocol.PublishDiagnosticsParams{
+				URI:         f.uri,
+				Diagnostics: f.Diagnostics(),
+			})
+		}()
 	}
-	return dgs
+	wg.Wait()
 }

@@ -8,9 +8,7 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-func (d *Document) diagnostics() []protocol.Diagnostic {
-	rs := make([]protocol.Diagnostic, 0)
-
+func (d *Document) diagnostics(c chan<- *protocol.Diagnostic) {
 	for _, ref := range d.references {
 		if ref.ident != nil {
 			continue
@@ -19,7 +17,7 @@ func (d *Document) diagnostics() []protocol.Diagnostic {
 		sev := protocol.DiagnosticSeverityError
 		src := "validation"
 
-		rs = append(rs, protocol.Diagnostic{
+		c <- &protocol.Diagnostic{
 			Range: protocol.Range{
 				Start: d.OffsetPosition(ref.offsets[0]),
 				End:   d.OffsetPosition(ref.offsets[1]),
@@ -27,10 +25,8 @@ func (d *Document) diagnostics() []protocol.Diagnostic {
 			Message:  fmt.Sprintf("unknown %s %s", ref.kind, ref.name),
 			Severity: &sev,
 			Source:   &src,
-		})
+		}
 	}
-
-	return rs
 }
 
 var syntaxErrorRegexp = regexp.MustCompile(`(?s)^\[(\d+):(\d+)\] (.+)`)

@@ -67,11 +67,9 @@ func getDoc[T docTypes](th *TektonHandler, doc T) *tekton.File {
 }
 
 func (th *TektonHandler) publishDiagnostics(context *glsp.Context) error {
-	// TODO: publish diagnostics incrementally (per file)
-	dgs := th.workspace.Diagnostics()
-	for _, dg := range dgs {
+	th.workspace.Diagnostics(func(dg protocol.PublishDiagnosticsParams) {
 		context.Notify(protocol.ServerTextDocumentPublishDiagnostics, dg)
-	}
+	})
 	return nil
 }
 

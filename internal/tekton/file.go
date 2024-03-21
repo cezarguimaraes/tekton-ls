@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/cezarguimaraes/tekton-ls/internal/file"
 	"github.com/goccy/go-yaml"
@@ -197,16 +198,32 @@ func (f *File) Completions(pos protocol.Position) []fmt.Stringer {
 }
 
 func (f *File) Diagnostics() []protocol.Diagnostic {
-	rs := make([]protocol.Diagnostic, 0)
 	if f.parseError != nil {
 		if d := syntaxErrorDiagnostic(f.parseError); d != nil {
-			rs = append(rs, *d)
-			return rs
+			return []protocol.Diagnostic{*d}
 		}
 	}
+
+	dgs := make(chan *protocol.Diagnostic, len(f.docs))
+	var wg sync.WaitGroup
 	for _, d := range f.docs {
-		rs = append(rs, d.diagnostics()...)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			d.diagnostics(dgs)
+		}()
 	}
+
+	go func() {
+		wg.Wait()
+		close(dgs)
+	}()
+
+	rs := make([]protocol.Diagnostic, 0, len(f.docs))
+	for dg := range dgs {
+		rs = append(rs, *dg)
+	}
+
 	return rs
 }
 
