@@ -2,13 +2,43 @@ package tekton
 
 import (
 	"fmt"
+	"strings"
 )
 
-type IdentParameter StringMap
+type identParam struct {
+	value      interface{}
+	parent     interface{}
+	parentKind string
+	parentName string
+}
 
-var _ Meta = IdentParameter{}
+func IdentParameter(v StringMap, parent interface{}) *identParam {
+	p := &identParam{
+		value:  v,
+		parent: parent,
+	}
 
-func (p IdentParameter) Completions() []completion {
+	pm := parent.(map[string]interface{})
+	kind, ok := pm["kind"].(string)
+	if ok {
+		p.parentKind = strings.ToLower(kind)
+	}
+
+	var meta map[string]interface{}
+	if m, ok := pm["metadata"]; ok {
+		meta, _ = m.(map[string]interface{})
+	}
+
+	if meta != nil {
+		p.parentName, _ = meta["name"].(string)
+	}
+
+	return p
+}
+
+var _ Meta = &identParam{}
+
+func (p *identParam) Completions() []completion {
 	return []completion{
 		{
 			text: fmt.Sprintf("$(params.%s)", p.Name()),
@@ -16,29 +46,29 @@ func (p IdentParameter) Completions() []completion {
 	}
 }
 
-func (p IdentParameter) Name() string {
-	n, _ := StringMap(p)["name"].(string)
+func (p *identParam) Name() string {
+	n, _ := StringMap(p.value.(map[string]interface{}))["name"].(string)
 	return n
 }
 
-func (p IdentParameter) Default() string {
-	d, _ := StringMap(p)["default"].(string)
+func (p *identParam) Default() string {
+	d, _ := StringMap(p.value.(map[string]interface{}))["default"].(string)
 	return d
 }
 
-func (p IdentParameter) Type() string {
-	if t, ok := StringMap(p)["type"].(string); ok {
+func (p *identParam) Type() string {
+	if t, ok := StringMap(p.value.(map[string]interface{}))["type"].(string); ok {
 		return t
 	}
 	return "string"
 }
 
-func (p IdentParameter) Description() string {
-	d, _ := StringMap(p)["description"].(string)
+func (p *identParam) Description() string {
+	d, _ := StringMap(p.value.(map[string]interface{}))["description"].(string)
 	return d
 }
 
-func (p IdentParameter) Documentation() string {
+func (p *identParam) Documentation() string {
 	return fmt.Sprintf(
 		"```yaml\nname: %s\ndefault: %s\ntype: %s\n%s\n```",
 		p.Name(),

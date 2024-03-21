@@ -136,18 +136,18 @@ func (f *File) solveIdentifiers() {
 	}
 }
 
-func (f *File) getIdent(kind identifierKind, name string) *identifier {
+func (f *File) getIdent(l identLocator) *identifier {
 	ids := []*identifier{}
 	for _, d := range f.docs {
-		if id := d.getIdent(kind, name); id != nil {
+		if id := d.getIdent(l); id != nil {
 			ids = append(ids, id)
 		}
 	}
 	if len(ids) > 1 {
 		panic(
 			fmt.Errorf(
-				"file.getIdent(%s, %s) returned more than one identifier",
-				kind, name,
+				"file.getIdent(%v) returned more than one identifier",
+				l,
 			),
 		)
 	}

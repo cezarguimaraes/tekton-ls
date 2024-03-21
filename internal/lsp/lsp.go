@@ -65,18 +65,11 @@ func getDoc[T docTypes](th *TektonHandler, doc T) *tekton.File {
 	return th.workspace.File(uri)
 }
 
-func (th *TektonHandler) publishDiagnostics(context *glsp.Context, doc protocol.VersionedTextDocumentIdentifier) error {
-	dgs := getDoc(th, doc).Diagnostics()
-
-	ver := uint32(doc.Version)
-	context.Notify(
-		protocol.ServerTextDocumentPublishDiagnostics,
-		protocol.PublishDiagnosticsParams{
-			URI:         doc.URI,
-			Diagnostics: dgs,
-			Version:     &ver,
-		},
-	)
+func (th *TektonHandler) publishDiagnostics(context *glsp.Context) error {
+	dgs := th.workspace.Diagnostics()
+	for _, dg := range dgs {
+		context.Notify(protocol.ServerTextDocumentPublishDiagnostics, dg)
+	}
 	return nil
 }
 
@@ -119,12 +112,7 @@ func (th *TektonHandler) docOpen() protocol.TextDocumentDidOpenFunc {
 	return func(context *glsp.Context, params *protocol.DidOpenTextDocumentParams) error {
 		th.workspace.UpsertFile(params.TextDocument.URI, params.TextDocument.Text)
 		th.workspace.Lint()
-		return th.publishDiagnostics(context, protocol.VersionedTextDocumentIdentifier{
-			TextDocumentIdentifier: protocol.TextDocumentIdentifier{
-				URI: params.TextDocument.URI,
-			},
-			Version: params.TextDocument.Version,
-		})
+		return th.publishDiagnostics(context)
 	}
 }
 
@@ -138,7 +126,7 @@ func (th *TektonHandler) docChange() protocol.TextDocumentDidChangeFunc {
 			params.ContentChanges[0].(protocol.TextDocumentContentChangeEventWhole).Text,
 		)
 		th.workspace.Lint()
-		return th.publishDiagnostics(context, params.TextDocument)
+		return th.publishDiagnostics(context)
 	}
 }
 

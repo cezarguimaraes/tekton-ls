@@ -69,9 +69,9 @@ func (w *Workspace) AddFolder(uri string) {
 }
 
 // TODO: add diagnostic for when there are multiple idents
-func (w *Workspace) getIdent(kind identifierKind, name string) *identifier {
+func (w *Workspace) getIdent(l identLocator) *identifier {
 	for _, f := range w.files {
-		id := f.getIdent(kind, name)
+		id := f.getIdent(l)
 		if id != nil {
 			return id
 		}
@@ -85,4 +85,15 @@ func (w *Workspace) FindReferences(docUri string, pos protocol.Position) []proto
 
 func (w *Workspace) Rename(docUri string, pos protocol.Position, newName string) (*protocol.WorkspaceEdit, error) {
 	return w.File(docUri).Rename(pos, newName)
+}
+
+func (w *Workspace) Diagnostics() []protocol.PublishDiagnosticsParams {
+	var dgs []protocol.PublishDiagnosticsParams
+	for _, f := range w.files {
+		dgs = append(dgs, protocol.PublishDiagnosticsParams{
+			URI:         f.uri,
+			Diagnostics: f.Diagnostics(),
+		})
+	}
+	return dgs
 }

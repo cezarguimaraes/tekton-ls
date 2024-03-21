@@ -36,7 +36,7 @@ func TestWorkspace(t *testing.T) {
 	}
 
 	for _, tc := range identTCs {
-		id := w.getIdent(tc.kind, tc.name)
+		id := w.getIdent(&kindNameLocator{tc.kind, tc.name})
 		if id == nil {
 			t.Errorf("expected to find ident %q of kind %q in the workspace",
 				tc.name, tc.kind,

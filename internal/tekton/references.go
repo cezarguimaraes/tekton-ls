@@ -24,7 +24,7 @@ func (r *regexpRef) find(d *Document) {
 	refs := r.regex.FindAllSubmatchIndex(d.Bytes(), 1000)
 	for _, match := range refs {
 		name := string(d.Bytes())[match[2]:match[3]]
-		id := d.getIdent(r.kind, name)
+		id := d.getIdent(&kindNameLocator{r.kind, name})
 
 		if match[0] < d.offset || match[1] > d.offset+d.size {
 			continue
@@ -179,7 +179,7 @@ var references = []referenceResolver{
 				{
 					kind:    IdentKindWorkspace,
 					name:    wsName,
-					ident:   d.getIdent(IdentKindWorkspace, wsName),
+					ident:   d.getIdent(&kindNameLocator{IdentKindWorkspace, wsName}),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,
@@ -200,7 +200,7 @@ var references = []referenceResolver{
 				{
 					kind:    IdentKindPipelineTask,
 					name:    s,
-					ident:   d.getIdent(IdentKindPipelineTask, s),
+					ident:   d.getIdent(&kindNameLocator{IdentKindPipelineTask, s}),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,
@@ -221,7 +221,7 @@ var references = []referenceResolver{
 				{
 					kind:    IdentKindTask,
 					name:    s,
-					ident:   d.file.workspace.getIdent(IdentKindTask, s),
+					ident:   d.file.workspace.getIdent(&kindNameLocator{IdentKindTask, s}),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,
@@ -241,13 +241,31 @@ var references = []referenceResolver{
 			if !ok {
 				return nil
 			}
+
+			parent := nodes[1].value.(map[string]interface{})
+			tr := parent["taskRef"]
+			var trm map[string]interface{}
+			if tr != nil {
+				trm, _ = tr.(map[string]interface{})
+			}
+			var taskName string
+			if trm != nil {
+				ni := trm["name"]
+				if ni != nil {
+					taskName, _ = ni.(string)
+				}
+			}
+
 			prange, offsets := d.getNodeRange(nodes[3].node)
 			return []reference{
 				{
 					kind: IdentKindParam,
 					name: s,
 					// TODO: get param from the correct task :)
-					ident:   d.file.workspace.getIdent(IdentKindParam, s),
+					ident: d.file.workspace.getIdent(&taskParamLocator{
+						name:     s,
+						taskName: taskName,
+					}),
 					start:   prange.Start,
 					end:     prange.End,
 					offsets: offsets,

@@ -42,12 +42,47 @@ type identifier struct {
 	references [][]protocol.Location
 }
 
-func (d *Document) getIdent(kind identifierKind, name string) *identifier {
+type identLocator interface {
+	matches(*identifier) bool
+}
+
+type kindNameLocator struct {
+	kind identifierKind
+	name string
+}
+
+func (l *kindNameLocator) matches(id *identifier) bool {
+	return id.kind == l.kind && id.meta.Name() == l.name
+}
+
+type taskParamLocator struct {
+	name     string
+	taskName string
+}
+
+func (l *taskParamLocator) matches(id *identifier) bool {
+	if id.kind != IdentKindParam {
+		return false
+	}
+	if id.meta.Name() != l.name {
+		return false
+	}
+	p, ok := id.meta.(*identParam)
+	if !ok {
+		return false
+	}
+	if p.parentKind != "task" {
+		return false
+	}
+	if p.parentName != l.taskName {
+		return false
+	}
+	return true
+}
+
+func (d *Document) getIdent(l identLocator) *identifier {
 	for _, id := range d.identifiers {
-		if id.kind != kind {
-			continue
-		}
-		if id.meta.Name() != name {
+		if !l.matches(id) {
 			continue
 		}
 		return id
@@ -68,7 +103,7 @@ var identifiers = []struct {
 			mustPathString("$.name"),
 		},
 		meta: func(nodes []parsedNode) Meta {
-			return IdentParameter(nodes[1].value.(StringMap))
+			return IdentParameter(nodes[1].value.(StringMap), nodes[0].value)
 		},
 	},
 	{
