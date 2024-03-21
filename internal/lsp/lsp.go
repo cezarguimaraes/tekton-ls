@@ -239,7 +239,7 @@ func (th *TektonHandler) prepareRename() protocol.TextDocumentPrepareRenameFunc 
 		if r == nil {
 			return nil, nil
 		}
-		return r, nil
+		return r.Range, nil
 	}
 }
 
