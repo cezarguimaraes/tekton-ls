@@ -57,56 +57,61 @@ func (d *Document) getIdent(kind identifierKind, name string) *identifier {
 
 var identifiers = []struct {
 	kind identifierKind
-	meta func(StringMap) Meta
+	meta func([]parsedNode) Meta
 
-	listPath *yaml.Path
-	depth    int
-	namePath *yaml.Path // optional
+	paths []*yaml.Path
 }{
 	{
-		kind:     IdentKindParam,
-		listPath: mustPathString("$.spec.params[*]"),
-		depth:    1,
-		meta: func(s StringMap) Meta {
-			return IdentParameter(s)
+		kind: IdentKindParam,
+		paths: []*yaml.Path{
+			mustPathString("$.spec.params[*]"),
+			mustPathString("$.name"),
+		},
+		meta: func(nodes []parsedNode) Meta {
+			return IdentParameter(nodes[1].value.(StringMap))
 		},
 	},
 	{
-		kind:     IdentKindResult,
-		listPath: mustPathString("$.spec.results[*]"),
-		depth:    1,
-		meta: func(s StringMap) Meta {
-			return IdentResult(s)
+		kind: IdentKindResult,
+		paths: []*yaml.Path{
+			mustPathString("$.spec.results[*]"),
+			mustPathString("$.name"),
+		},
+		meta: func(nodes []parsedNode) Meta {
+			return IdentResult(nodes[1].value.(StringMap))
 		},
 	},
 	{
-		kind:     IdentKindWorkspace,
-		listPath: mustPathString("$.spec.workspaces[*]"),
-		depth:    1,
-		meta: func(s StringMap) Meta {
-			return IdentWorkspace(s)
+		kind: IdentKindWorkspace,
+		paths: []*yaml.Path{
+			mustPathString("$.spec.workspaces[*]"),
+			mustPathString("$.name"),
+		},
+		meta: func(nodes []parsedNode) Meta {
+			return IdentWorkspace(nodes[1].value.(StringMap))
 		},
 	},
 	{
-		kind:     IdentKindPipelineTask,
-		listPath: mustPathString("$.spec.tasks[*]"),
-		depth:    1,
-		meta: func(s StringMap) Meta {
-			return PipelineTask(s)
+		kind: IdentKindPipelineTask,
+		paths: []*yaml.Path{
+			mustPathString("$.spec.tasks[*]"),
+			mustPathString("$.name"),
+		},
+		meta: func(nodes []parsedNode) Meta {
+			return PipelineTask(nodes[1].value.(StringMap))
 		},
 	},
 	{
 		kind: IdentKindTask,
-		// $ path does not work, so we handle listPath == nil and don't filter
-		// listPath: mustPathString("$"),
-		namePath: mustPathString("$.metadata.name"),
-		depth:    0,
-		meta: func(s StringMap) Meta {
-			kind, ok := s["kind"].(string)
+		paths: []*yaml.Path{
+			mustPathString("$.metadata.name"),
+		},
+		meta: func(nodes []parsedNode) Meta {
+			kind, ok := nodes[0].value.(map[string]interface{})["kind"].(string)
 			if !ok || strings.ToLower(kind) != "task" {
 				return nil
 			}
-			return IdentTask(s)
+			return IdentTask(nodes[0].value.(StringMap))
 		},
 	},
 }
@@ -129,59 +134,76 @@ func (d *Document) getNodeRange(node ast.Node) (r protocol.Range, offsets []int)
 func (d *Document) parseIdentifiers() {
 	d.identifiers = d.identifiers[:0]
 	for _, ident := range identifiers {
-		node := d.ast.Body
-		var err error
-		if ident.listPath != nil {
-			node, err = ident.listPath.FilterNode(d.ast.Body)
-			if err != nil {
-				continue
-			}
-		}
-		ident := ident
-
-		identMap := make(map[string]*identifier)
-		visitNodes(node, ident.depth, func(n ast.Node) {
-			var v StringMap
-			// go-yaml bug:
-			// ```yaml
-			// val: >-
-			//   name
-			//   # if there is no trailing space here (or another node),
-			//   # the value is unmarshalled as `nam`
-			// ```
-			// workaround: append a whitespace before unmarshalling
-			_ = yaml.Unmarshal([]byte(n.String()+" "), &v)
-			meta := ident.meta(v)
+		visitPath(d.ast.Body, ident.paths, func(nodes []parsedNode) {
+			meta := ident.meta(nodes)
 			if meta == nil {
 				return
 			}
 
-			namePath := ident.namePath
-			if namePath == nil {
-				namePath = mustPathString("$.name")
-			}
-
-			nameNode, err := namePath.FilterNode(n)
-			if err != nil {
-				// TODO: include a diagnostic when this kind of error happens
-				// or use another yaml parser to identify these errors beforehand
-				return
-			}
-
-			defRange, _ := d.getNodeRange(nameNode)
+			def := nodes[len(nodes)-1]
+			defRange, _ := d.getNodeRange(def.node)
 			id := &identifier{
 				kind:       ident.kind,
-				meta:       ident.meta(v),
-				definition: nameNode,
+				meta:       meta,
+				definition: def.node,
 				location: protocol.Location{
 					Range: defRange,
 					URI:   d.file.uri,
 				},
 			}
 			d.identifiers = append(d.identifiers, id)
-
-			identMap[id.meta.Name()] = id
 		})
+	}
+}
+
+type parsedNode struct {
+	node  ast.Node
+	value interface{}
+}
+
+type pathFunc = func([]parsedNode)
+
+func visitPath(node ast.Node, paths []*yaml.Path, f pathFunc, nodes ...parsedNode) {
+	pn := parsedNode{
+		node: node,
+	}
+	// go-yaml bug:
+	// ```yaml
+	// val: >-
+	//   name
+	//   # if there is no trailing space here (or another node),
+	//   # the value is unmarshalled as `nam`
+	// ```
+	// workaround: append a whitespace before unmarshalling
+	err := yaml.Unmarshal([]byte(node.String()+" "), &pn.value)
+	if err != nil {
+		return
+	}
+	nodes = append(nodes, pn)
+
+	if len(paths) == 0 {
+		f(nodes)
+		return
+	}
+
+	p := paths[0]
+	filtered, err := p.FilterNode(node)
+	if err != nil || filtered == nil {
+		return
+	}
+
+	if seq, ok := filtered.(*ast.SequenceNode); ok {
+		for _, v := range seq.Values {
+			if v == nil {
+				continue
+			}
+			if _, isNull := v.(*ast.NullNode); isNull {
+				continue
+			}
+			visitPath(v, paths[1:], f, nodes...)
+		}
+	} else {
+		visitPath(filtered, paths[1:], f, nodes...)
 	}
 }
 
