@@ -105,6 +105,37 @@ func (r *pathRef) find(d *Document) {
 	})
 }
 
+type pathRef2 struct {
+	paths   []*yaml.Path
+	handler func(*Document, []parsedNode) []reference
+}
+
+var _ referenceResolver = &pathRef2{}
+
+func (r *pathRef2) find(d *Document) {
+	visitPath(d.ast.Body, r.paths, func(pn []parsedNode) {
+		refs := r.handler(d, pn)
+		for _, ref := range refs {
+			ref.docURI = d.file.uri
+			if id := ref.ident; id != nil {
+				loc := protocol.Location{
+					URI: d.file.uri,
+					Range: protocol.Range{
+						Start: ref.start,
+						End:   ref.end,
+					},
+				}
+
+				id.references = append(
+					id.references,
+					[]protocol.Location{loc, loc},
+				)
+			}
+			d.references = append(d.references, ref)
+		}
+	})
+}
+
 var references = []referenceResolver{
 	&regexpRef{
 		kind:  IdentKindParam,
@@ -198,15 +229,19 @@ var references = []referenceResolver{
 			}
 		},
 	},
-	&pathRef{
-		path:  mustPathString("$.spec.tasks[*].params[*].name"),
-		depth: 2,
-		handler: func(d *Document, v interface{}, node ast.Node) []reference {
-			s, ok := v.(string)
+	&pathRef2{
+		paths: []*yaml.Path{
+			mustPathString("$.spec.tasks[*]"),
+			mustPathString("$.params[*]"),
+			mustPathString("$.name"),
+			// mustPathString("$.spec.tasks[*].params[*].name"),
+		},
+		handler: func(d *Document, nodes []parsedNode) []reference {
+			s, ok := nodes[3].value.(string)
 			if !ok {
 				return nil
 			}
-			prange, offsets := d.getNodeRange(node)
+			prange, offsets := d.getNodeRange(nodes[3].node)
 			return []reference{
 				{
 					kind: IdentKindParam,
