@@ -72,7 +72,7 @@ var _ referenceResolver = &pathRef{}
 func (r *pathRef) find(d *Document) {
 	node, err := r.path.FilterNode(d.ast.Body)
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	visitNodes(node, r.depth, func(n ast.Node) {

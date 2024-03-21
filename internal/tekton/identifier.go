@@ -1,8 +1,6 @@
 package tekton
 
 import (
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/goccy/go-yaml"
@@ -136,7 +134,6 @@ func (d *Document) parseIdentifiers() {
 		if ident.listPath != nil {
 			node, err = ident.listPath.FilterNode(d.ast.Body)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error listing ident %s: %v", ident.kind, err)
 				continue
 			}
 		}
