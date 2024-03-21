@@ -144,7 +144,6 @@ func (f *File) getIdent(kind identifierKind, name string) *identifier {
 		)
 	}
 	if len(ids) == 0 {
-		fmt.Println("looking for ident, not found", kind, name)
 		return nil
 	}
 	return ids[0]
