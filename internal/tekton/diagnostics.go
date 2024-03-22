@@ -18,7 +18,7 @@ func (d *Document) diagnostics(c chan<- *protocol.Diagnostic) {
 		}
 
 		sev := protocol.DiagnosticSeverityError
-		src := "validation"
+		src := fmt.Sprintf("unknown-%s", ref.kind)
 
 		c <- &protocol.Diagnostic{
 			Range: protocol.Range{
@@ -26,6 +26,25 @@ func (d *Document) diagnostics(c chan<- *protocol.Diagnostic) {
 				End:   d.OffsetPosition(ref.offsets[1]),
 			},
 			Message:  fmt.Sprintf("unknown %s %s", ref.kind, ref.name),
+			Severity: &sev,
+			Source:   &src,
+		}
+	}
+	for _, id := range d.identifiers {
+		if len(id.references) != 0 {
+			continue
+		}
+
+		if id.kind == IdentKindPipelineTask {
+			continue
+		}
+
+		sev := protocol.DiagnosticSeverityWarning
+		src := fmt.Sprintf("unused-%s", id.kind)
+
+		c <- &protocol.Diagnostic{
+			Range:    id.location.Range,
+			Message:  fmt.Sprintf("unused %s %s", id.kind, id.meta.Name()),
 			Severity: &sev,
 			Source:   &src,
 		}
