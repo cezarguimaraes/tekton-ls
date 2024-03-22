@@ -16,13 +16,13 @@ func init() {
 }
 
 func TestFindDoc(t *testing.T) {
-	file := ParseFile(file.TextDocument(string(multiDoc)))
+	file := parseFile(file.TextDocument(string(multiDoc)))
 
 	file.findDoc(protocol.Position{Line: 0, Character: 0})
 }
 
 func TestFileParseIdentifiers(t *testing.T) {
-	f := ParseFile(file.TextDocument(string(multiDoc)))
+	f := parseFile(file.TextDocument(string(multiDoc)))
 	for docId := range 2 {
 		for i, exp := range singleTCs {
 			if i >= len(f.docs[docId].identifiers) {
@@ -76,7 +76,7 @@ func locationToRange(locs []protocol.Location) []protocol.Range {
 }
 
 func TestFileFindReferences(t *testing.T) {
-	f := ParseFile(file.TextDocument(string(multiDoc)))
+	f := parseFile(file.TextDocument(string(multiDoc)))
 	tcs := []struct {
 		pos  protocol.Position
 		refs []protocol.Range

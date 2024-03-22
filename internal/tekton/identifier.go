@@ -5,6 +5,8 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
+
+	yaml_helper "github.com/cezarguimaraes/tekton-ls/internal/yaml"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
@@ -34,18 +36,24 @@ func (k identifierKind) String() string {
 	return ""
 }
 
+// identifier holds information about any identifiers - Tekton objects that
+// can be referred to.
 type identifier struct {
-	kind       identifierKind
-	meta       Meta
+	kind identifierKind
+	meta Meta
+
 	definition ast.Node
+
 	location   protocol.Location
 	references [][]protocol.Location
 }
 
+// identLocator defines a strategy to locate identifiers.
 type identLocator interface {
 	matches(*identifier) bool
 }
 
+// kindNameLocator locates an identifier given a kind and name.
 type kindNameLocator struct {
 	kind identifierKind
 	name string
@@ -55,6 +63,8 @@ func (l *kindNameLocator) matches(id *identifier) bool {
 	return id.kind == l.kind && id.meta.Name() == l.name
 }
 
+// taskParamLocator locates an identifier given a paramater name and the task
+// which defines it.
 type taskParamLocator struct {
 	name     string
 	taskName string
@@ -90,11 +100,20 @@ func (d *Document) getIdent(l identLocator) *identifier {
 	return nil
 }
 
+// identifiers is the list of rules used to find an identifier in a given
+// YAML document.
 var identifiers = []struct {
+	// kind is the identifier kind which this rule finds.
 	kind identifierKind
-	meta func([]parsedNode) Meta
 
+	// paths is a list of recursive YAML paths required to properly construct
+	// an identifier.
 	paths []*yaml.Path
+
+	// meta is the function handler which should construct a Meta Tekton object
+	// given the list of nodes matched by `paths`. Check `yaml.VisitPath` for
+	// more information.
+	meta func([]yaml_helper.ParsedNode) Meta
 }{
 	{
 		kind: IdentKindParam,
@@ -102,8 +121,8 @@ var identifiers = []struct {
 			mustPathString("$.spec.params[*]"),
 			mustPathString("$.name"),
 		},
-		meta: func(nodes []parsedNode) Meta {
-			return IdentParameter(nodes[1].value.(StringMap), nodes[0].value)
+		meta: func(nodes []yaml_helper.ParsedNode) Meta {
+			return IdentParameter(nodes[1].Value.(StringMap), nodes[0].Value)
 		},
 	},
 	{
@@ -112,8 +131,8 @@ var identifiers = []struct {
 			mustPathString("$.spec.results[*]"),
 			mustPathString("$.name"),
 		},
-		meta: func(nodes []parsedNode) Meta {
-			return IdentResult(nodes[1].value.(StringMap))
+		meta: func(nodes []yaml_helper.ParsedNode) Meta {
+			return IdentResult(nodes[1].Value.(StringMap))
 		},
 	},
 	{
@@ -122,8 +141,8 @@ var identifiers = []struct {
 			mustPathString("$.spec.workspaces[*]"),
 			mustPathString("$.name"),
 		},
-		meta: func(nodes []parsedNode) Meta {
-			return IdentWorkspace(nodes[1].value.(StringMap))
+		meta: func(nodes []yaml_helper.ParsedNode) Meta {
+			return IdentWorkspace(nodes[1].Value.(StringMap))
 		},
 	},
 	{
@@ -132,8 +151,8 @@ var identifiers = []struct {
 			mustPathString("$.spec.tasks[*]"),
 			mustPathString("$.name"),
 		},
-		meta: func(nodes []parsedNode) Meta {
-			return PipelineTask(nodes[1].value.(StringMap))
+		meta: func(nodes []yaml_helper.ParsedNode) Meta {
+			return PipelineTask(nodes[1].Value.(StringMap))
 		},
 	},
 	{
@@ -141,16 +160,18 @@ var identifiers = []struct {
 		paths: []*yaml.Path{
 			mustPathString("$.metadata.name"),
 		},
-		meta: func(nodes []parsedNode) Meta {
-			kind, ok := nodes[0].value.(map[string]interface{})["kind"].(string)
+		meta: func(nodes []yaml_helper.ParsedNode) Meta {
+			kind, ok := nodes[0].Value.(map[string]interface{})["kind"].(string)
 			if !ok || strings.ToLower(kind) != "task" {
 				return nil
 			}
-			return IdentTask(nodes[0].value.(StringMap))
+			return IdentTask(nodes[0].Value.(StringMap))
 		},
 	},
 }
 
+// getNodeRange returns the text document Range (start, end) and offsets (as
+// defined by reference.offsets) of the given AST node.
 func (d *Document) getNodeRange(node ast.Node) (r protocol.Range, offsets []int) {
 	r.Start = protocol.Position{
 		Line:      uint32(node.GetToken().Position.Line - 1),
@@ -166,21 +187,24 @@ func (d *Document) getNodeRange(node ast.Node) (r protocol.Range, offsets []int)
 	return
 }
 
+// parseIdentifiers locates all Tekton object identifiers (or definitions)
+// in the Document. The identifier `references` property is not populated
+// yet.
 func (d *Document) parseIdentifiers() {
 	d.identifiers = d.identifiers[:0]
 	for _, ident := range identifiers {
-		visitPath(d.ast.Body, ident.paths, func(nodes []parsedNode) {
+		yaml_helper.VisitPath(d.ast.Body, ident.paths, func(nodes []yaml_helper.ParsedNode) {
 			meta := ident.meta(nodes)
 			if meta == nil {
 				return
 			}
 
 			def := nodes[len(nodes)-1]
-			defRange, _ := d.getNodeRange(def.node)
+			defRange, _ := d.getNodeRange(def.Node)
 			id := &identifier{
 				kind:       ident.kind,
 				meta:       meta,
-				definition: def.node,
+				definition: def.Node,
 				location: protocol.Location{
 					Range: defRange,
 					URI:   d.file.uri,
@@ -188,75 +212,5 @@ func (d *Document) parseIdentifiers() {
 			}
 			d.identifiers = append(d.identifiers, id)
 		})
-	}
-}
-
-type parsedNode struct {
-	node  ast.Node
-	value interface{}
-}
-
-type pathFunc = func([]parsedNode)
-
-func visitPath(node ast.Node, paths []*yaml.Path, f pathFunc, nodes ...parsedNode) {
-	pn := parsedNode{
-		node: node,
-	}
-	// go-yaml bug:
-	// ```yaml
-	// val: >-
-	//   name
-	//   # if there is no trailing space here (or another node),
-	//   # the value is unmarshalled as `nam`
-	// ```
-	// workaround: append a whitespace before unmarshalling
-	err := yaml.Unmarshal([]byte(node.String()+" "), &pn.value)
-	if err != nil {
-		return
-	}
-	nodes = append(nodes, pn)
-
-	if len(paths) == 0 {
-		f(nodes)
-		return
-	}
-
-	p := paths[0]
-	filtered, err := p.FilterNode(node)
-	if err != nil || filtered == nil {
-		return
-	}
-
-	if seq, ok := filtered.(*ast.SequenceNode); ok {
-		for _, v := range seq.Values {
-			if v == nil {
-				continue
-			}
-			if _, isNull := v.(*ast.NullNode); isNull {
-				continue
-			}
-			visitPath(v, paths[1:], f, nodes...)
-		}
-	} else {
-		visitPath(filtered, paths[1:], f, nodes...)
-	}
-}
-
-// TODO: move to yaml package
-type visitFunc = func(ast.Node)
-
-func visitNodes(node ast.Node, depth int, f visitFunc) {
-	if node == nil {
-		return
-	}
-	if _, isNull := node.(*ast.NullNode); isNull {
-		return
-	}
-	if depth == 0 {
-		f(node)
-		return
-	}
-	for _, v := range node.(*ast.SequenceNode).Values {
-		visitNodes(v, depth-1, f)
 	}
 }

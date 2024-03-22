@@ -3,15 +3,53 @@ package tekton
 import (
 	"regexp"
 
+	yaml_helper "github.com/cezarguimaraes/tekton-ls/internal/yaml"
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
+// reference holds information about a text fragment which purposes to refer
+// to an identifier.
+type reference struct {
+	// kind is the identifier kind of this reference.
+	kind identifierKind
+
+	// name is the identifier name referred to by this reference.
+	name string
+
+	// docURI is the TextDocument URI in which this reference is found.
+	docURI string
+
+	// offsets is an array of [start, end) text positions identified in this
+	// reference. For example, for a reference of the kind $(params.name),
+	// text[offsets[0]:offsets[1]] contains `$(params.name)` and
+	// text[offset[2]:offsets[3]] contains `name`.
+	offsets []int
+
+	// start contains the inclusive start position of this reference in
+	// the document.
+	start protocol.Position
+	// end contains the exclusive end position of this reference in
+	// the document.
+	end protocol.Position
+
+	// ident is the identifier found to be referred by this reference. It can
+	// be nil if no identifier of the given name is found.
+	ident *identifier
+}
+
+// referenceResolver is an interface able to locate some kind of references
+// in a given Tekton Document. Additionally from identifying references,
+// it should query the appropriate Tekton abstraction (among Workspace, File,
+// and Document) for the identifier referred by the references it finds.
+// It additionally must update the document.danglingRefs set with the name
+// of any identifier it isn't able to find.
 type referenceResolver interface {
 	find(*Document)
 }
 
+// regexpRef implements referenceResolver given a regular expression.
 type regexpRef struct {
 	kind  identifierKind
 	regex *regexp.Regexp
@@ -19,6 +57,8 @@ type regexpRef struct {
 
 var _ referenceResolver = &regexpRef{}
 
+// find implements referenceResolver by finding all matches of a regular
+// expression in a given document.
 func (r *regexpRef) find(d *Document) {
 	// this can be reused between documents
 	refs := r.regex.FindAllSubmatchIndex(d.Bytes(), 1000)
@@ -63,6 +103,7 @@ func (r *regexpRef) find(d *Document) {
 	}
 }
 
+// deprecated: move to pathRef2
 type pathRef struct {
 	path    *yaml.Path
 	depth   int
@@ -77,7 +118,7 @@ func (r *pathRef) find(d *Document) {
 		return
 	}
 
-	visitNodes(node, r.depth, func(n ast.Node) {
+	yaml_helper.VisitNodes(node, r.depth, func(n ast.Node) {
 		var v interface{}
 		_ = yaml.Unmarshal([]byte(n.String()), &v)
 
@@ -110,15 +151,19 @@ func (r *pathRef) find(d *Document) {
 	})
 }
 
+// pathRef2 implements referenceResolver given a recursive YAML path list
+// and a function handler which turns the list of parsedNode found by
+// yaml.VisitPath into a list of references. Check yaml.VisitPath for more
+// information.
 type pathRef2 struct {
 	paths   []*yaml.Path
-	handler func(*Document, []parsedNode) []reference
+	handler func(*Document, []yaml_helper.ParsedNode) []reference
 }
 
 var _ referenceResolver = &pathRef2{}
 
 func (r *pathRef2) find(d *Document) {
-	visitPath(d.ast.Body, r.paths, func(pn []parsedNode) {
+	yaml_helper.VisitPath(d.ast.Body, r.paths, func(pn []yaml_helper.ParsedNode) {
 		refs := r.handler(d, pn)
 		for _, ref := range refs {
 			ref.docURI = d.file.uri
@@ -143,6 +188,8 @@ func (r *pathRef2) find(d *Document) {
 	})
 }
 
+// references is the list of referenceResolver used to find all references
+// in a given Tekton Document.
 var references = []referenceResolver{
 	&regexpRef{
 		kind:  IdentKindParam,
@@ -243,13 +290,13 @@ var references = []referenceResolver{
 			mustPathString("$.name"),
 			// mustPathString("$.spec.tasks[*].params[*].name"),
 		},
-		handler: func(d *Document, nodes []parsedNode) []reference {
-			s, ok := nodes[3].value.(string)
+		handler: func(d *Document, nodes []yaml_helper.ParsedNode) []reference {
+			s, ok := nodes[3].Value.(string)
 			if !ok {
 				return nil
 			}
 
-			parent := nodes[1].value.(map[string]interface{})
+			parent := nodes[1].Value.(map[string]interface{})
 			tr := parent["taskRef"]
 			var trm map[string]interface{}
 			if tr != nil {
@@ -263,7 +310,7 @@ var references = []referenceResolver{
 				}
 			}
 
-			prange, offsets := d.getNodeRange(nodes[3].node)
+			prange, offsets := d.getNodeRange(nodes[3].Node)
 			return []reference{
 				{
 					kind: IdentKindParam,
@@ -282,6 +329,9 @@ var references = []referenceResolver{
 	},
 }
 
+// wholeReferences returns the largest Range which identifies a reference for
+// all references found for a given identifier. Check reference.offsets for
+// more information.
 func wholeReferences(id *identifier) []protocol.Location {
 	if id == nil {
 		return nil
@@ -313,6 +363,7 @@ func (d *Document) findReferences(pos protocol.Position) []protocol.Location {
 	return wholeReferences(d.findIdentifier(pos))
 }
 
+// cmpPos provides a strict partial order for TextDocument positions.
 func cmpPos(a, b protocol.Position) bool {
 	if a.Line < b.Line {
 		return true
@@ -323,6 +374,8 @@ func cmpPos(a, b protocol.Position) bool {
 	return false
 }
 
+// inRange returns true if and only if the given Position is contained by
+// the given Range.
 func inRange(pos protocol.Position, r protocol.Range) bool {
 	// r.start <= pos && pos < r.end
 	return !cmpPos(pos, r.Start) && cmpPos(pos, r.End)

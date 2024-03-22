@@ -187,8 +187,8 @@ var taskTCs = []identTC{
 }
 
 func TestDocParseIdentifiers(t *testing.T) {
-	single := ParseFile(file.TextDocument(string(singleDoc)))
-	pipe := ParseFile(file.TextDocument(string(pipelineDoc)))
+	single := parseFile(file.TextDocument(string(singleDoc)))
+	pipe := parseFile(file.TextDocument(string(pipelineDoc)))
 
 	tcs := []struct {
 		name  string
@@ -252,8 +252,8 @@ func TestDocParseIdentifiers(t *testing.T) {
 }
 
 func TestDocFindReferences(t *testing.T) {
-	f := ParseFile(file.TextDocument(string(singleDoc)))
-	p := ParseFile(file.TextDocument(string(pipelineDoc)))
+	f := parseFile(file.TextDocument(string(singleDoc)))
+	p := parseFile(file.TextDocument(string(pipelineDoc)))
 
 	single := f.docs[0]
 	pipe := p.docs[0]
@@ -332,17 +332,17 @@ spec:
 		},
 	}
 	for _, tc := range tc {
-		_ = ParseFile(file.TextDocument(tc.contents))
+		_ = parseFile(file.TextDocument(tc.contents))
 	}
 }
 
 func TestDocFindDefinition(t *testing.T) {
-	f := ParseFile(file.TextDocument(string(singleDoc)))
+	f := parseFile(file.TextDocument(string(singleDoc)))
 	pos := protocol.Position{
 		Line:      25,
 		Character: 20,
 	}
-	ref := f.docs[0].findDefinition(pos)
+	ref := f.docs[0].referenceInPosition(pos)
 	if ref == nil {
 		t.Fatalf("reference not found")
 	}

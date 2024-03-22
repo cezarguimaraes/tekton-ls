@@ -15,6 +15,7 @@ const (
 	version = "0.0.1"
 )
 
+// TektonHandler implements the LSP handlers.
 type TektonHandler struct {
 	protocol.Handler
 

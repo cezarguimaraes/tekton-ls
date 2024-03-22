@@ -6,6 +6,7 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
+// check File.PrepareRename
 func (d *Document) prepareRename(pos protocol.Position) *protocol.Location {
 	id := d.findIdentifier(pos)
 	if id == nil {
@@ -14,6 +15,7 @@ func (d *Document) prepareRename(pos protocol.Position) *protocol.Location {
 	return &id.location
 }
 
+// check File.Rename
 func (d *Document) rename(
 	pos protocol.Position,
 	newName string,

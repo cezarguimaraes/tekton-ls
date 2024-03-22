@@ -8,6 +8,9 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
+// diagnostics sends into the argument channel any problems identified
+// in the document. It currently only reports references for which none
+// identifier has been found.
 func (d *Document) diagnostics(c chan<- *protocol.Diagnostic) {
 	for _, ref := range d.references {
 		if ref.ident != nil {
@@ -31,7 +34,8 @@ func (d *Document) diagnostics(c chan<- *protocol.Diagnostic) {
 
 var syntaxErrorRegexp = regexp.MustCompile(`(?s)^\[(\d+):(\d+)\] (.+)`)
 
-// hack to extract error position from goccy/go-yaml unexported syntaxError
+// syntaxErrorDiagnostic is a hack to extract error position from goccy/go-yaml
+// unexported syntaxError
 func syntaxErrorDiagnostic(err error) *protocol.Diagnostic {
 	ms := syntaxErrorRegexp.FindStringSubmatch(err.Error())
 	if len(ms) != 4 {

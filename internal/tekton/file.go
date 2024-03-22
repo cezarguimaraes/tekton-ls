@@ -13,65 +13,79 @@ import (
 	protocol "github.com/tliron/glsp/protocol_3_16"
 )
 
-type completion struct {
-	context *yaml.Path
-	text    string
-}
+type StringMap = map[string]interface{}
 
+// Meta is the root interface for any given Tekton object understood by this
+// language server.
 type Meta interface {
+	// Name returns the name of the given Tekton object.
 	Name() string
+
+	// Documentation returns the Markdown documentation of the given Tekton
+	// object.
 	Documentation() string
+
+	// Completions returns a list of possible completion suggestions
+	// associated with the Tekton object.
 	Completions() []completion
 }
 
-type reference struct {
-	kind identifierKind
-	name string
-
-	docURI string
-
-	offsets []int
-	start   protocol.Position
-	end     protocol.Position
-
-	ident *identifier
-}
-
+// File provides operation on a YAML file containing any number of
+// Tekton Documents - separated by `---` as defined by the YAML spec.
 type File struct {
+	// TextDocument of this file.
 	file.TextDocument
 
+	// Workspace containing this file.
 	workspace *Workspace
 
+	// uri is the TextDocument URI of this file.
 	uri string
 
+	// ast is the abstract syntax tree of this YAML file.
 	ast        *ast.File
 	parseError error
 
+	// docs is the list of tekton.Document contained in this file.
 	docs []*Document
 
+	// danglingRefs is a set containing the name of any reference to which
+	// no identifier could be mapped. This set is used to identify which
+	// files have to be re-linted whenever a file in the workspace is changed.
 	danglingRefs map[string]struct{}
 }
 
+// Document provides operation on a single YAML document containing a Tekton
+// resource.
 type Document struct {
+	// TextDocument is the LSP TextDocument which contains this document.
 	file.TextDocument
 
+	// file containing this document.
 	file *File
 
+	// offset is the starting position of the Document in its containing File.
 	offset int
-	size   int
+	// size of the document in its containing File.
+	size int
 
+	// ast is the abstract syntax tree of this YAML document.
 	ast *ast.DocumentNode
 
-	parameters []Meta
-	results    []Meta
-	workspaces []Meta
-
+	// identifiers is the list of identifiers (i.e definitions) in this file.
 	identifiers []*identifier
-	references  []reference
+
+	// references is the list of possible references to identifiers in this file.
+	references []reference
 }
 
+// helmSanitizerRegexp is the regular expression used to identify Helm template
+// language directives. These directives are filtered out of the file contents
+// to prevent YAML syntax errors.
 var helmSanitizerRegexp = regexp.MustCompile(`{{.*?}}`)
 
+// NewFile sanitizes a TextDocument, parses its YAML contents into an AST,
+// and calculates the offset and size of every YAML document in the file.
 func NewFile(f file.TextDocument) *File {
 	r := &File{
 		TextDocument: f,
@@ -111,8 +125,8 @@ func NewFile(f file.TextDocument) *File {
 	return r
 }
 
-// used only for tests
-func ParseFile(f file.TextDocument) *File {
+// deprecated: used only for texts
+func parseFile(f file.TextDocument) *File {
 	ws := NewWorkspace()
 	uri := "file://test.yaml"
 	ws.UpsertFile(uri, string(f))
@@ -140,6 +154,8 @@ func (f *File) solveIdentifiers() {
 	}
 }
 
+// getIdent accepts an identLocator and returns a pointer to an identifier
+// in this File matched by the locator, or nil if none matches.
 func (f *File) getIdent(l identLocator) *identifier {
 	ids := []*identifier{}
 	for _, d := range f.docs {
@@ -161,6 +177,7 @@ func (f *File) getIdent(l identLocator) *identifier {
 	return ids[0]
 }
 
+// findDoc returns the Document containing the given position.
 func (f *File) findDoc(pos protocol.Position) *Document {
 	for _, d := range f.docs {
 		st := d.OffsetPosition(d.offset)
@@ -172,26 +189,40 @@ func (f *File) findDoc(pos protocol.Position) *Document {
 	return nil
 }
 
+// Hover returns a pointer to a string containing the Documentation of the
+// Tekton object in the given position, or nil if no reference is found.
 func (f *File) Hover(pos protocol.Position) *string {
 	return f.findDoc(pos).hover(pos)
 }
 
+// Rename returns the Workspace changes required to rename the identifier
+// in the given position to the newName argument.
 func (f *File) Rename(pos protocol.Position, newName string) (*protocol.WorkspaceEdit, error) {
 	return f.findDoc(pos).rename(pos, newName)
 }
 
+// PrepareRename returns the Location (File, Range) that should be edited
+// if a Rename request is made at the given position. It should return
+// nil if it's not a valid position for a rename request, that is, if no
+// identifier is found at the given position.
 func (f *File) PrepareRename(pos protocol.Position) *protocol.Location {
 	return f.findDoc(pos).prepareRename(pos)
 }
 
+// Definition returns the Location where the identifier in the given position
+// is defined, or nil if no identifier is found.
 func (f *File) Definition(pos protocol.Position) *protocol.Location {
 	return f.findDoc(pos).definition(pos)
 }
 
+// FindReferences returns a list of all Locations which refer to the identifier
+// in the given position, or nil if no identifier is found.
 func (f *File) FindReferences(pos protocol.Position) []protocol.Location {
 	return f.findDoc(pos).findReferences(pos)
 }
 
+// Completions returns a list of completion suggestions for the given
+// position.
 func (f *File) Completions(pos protocol.Position) []fmt.Stringer {
 	res := []fmt.Stringer{}
 	if f.parseError != nil {
@@ -200,6 +231,7 @@ func (f *File) Completions(pos protocol.Position) []fmt.Stringer {
 	return f.findDoc(pos).completions(pos)
 }
 
+// Diagnostics returns a list of Diagnostics issues found in this File.
 func (f *File) Diagnostics() []protocol.Diagnostic {
 	if f.parseError != nil {
 		if d := syntaxErrorDiagnostic(f.parseError); d != nil {
@@ -229,8 +261,6 @@ func (f *File) Diagnostics() []protocol.Diagnostic {
 
 	return rs
 }
-
-type StringMap = map[string]interface{}
 
 func mustPathString(path string) *yaml.Path {
 	p, err := yaml.PathString(path)
