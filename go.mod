@@ -4,7 +4,7 @@ go 1.22.1
 
 require (
 	github.com/goccy/go-yaml v1.11.3
-	github.com/tliron/commonlog v0.2.15
+	github.com/tliron/commonlog v0.2.16
 	github.com/tliron/glsp v0.2.2-0.20240309182338-ab78d718ad7d
 )
 
@@ -24,7 +24,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sourcegraph/jsonrpc2 v0.2.0 // indirect
-	github.com/tliron/kutil v0.3.18 // indirect
+	github.com/tliron/kutil v0.3.23 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect

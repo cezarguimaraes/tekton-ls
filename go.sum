@@ -44,10 +44,14 @@ github.com/sourcegraph/jsonrpc2 v0.2.0 h1:KjN/dC4fP6aN9030MZCJs9WQbTOjWHhrtKVpzz
 github.com/sourcegraph/jsonrpc2 v0.2.0/go.mod h1:ZafdZgk/axhT1cvZAPOhw+95nz2I/Ra5qMlU4gTRwIo=
 github.com/tliron/commonlog v0.2.15 h1:vukJpUFLsHapH9kvxfPXZmp4hV3fB1nPMdDsmTJnJCo=
 github.com/tliron/commonlog v0.2.15/go.mod h1:+K652hPl5OyLV7vy85F/YMAVPcQ6yOfXHG6uaX890dM=
+github.com/tliron/commonlog v0.2.16 h1:rDLWLKQI4wAQVYp2GvJKqIyVGYTIl0myuP0lAbFfbfo=
+github.com/tliron/commonlog v0.2.16/go.mod h1:p9p8LhdDgnOi9+GnF9tYKc8K61xOVr1reV+kpkSU7Cw=
 github.com/tliron/glsp v0.2.2-0.20240309182338-ab78d718ad7d h1:vLXYsCOnhX9EJ/dc+RYXwhL6/+tu98+f7qCy2jBJKIk=
 github.com/tliron/glsp v0.2.2-0.20240309182338-ab78d718ad7d/go.mod h1:GMVWDNeODxHzmDPvYbYTCs7yHVaEATfYtXiYJ9w1nBg=
 github.com/tliron/kutil v0.3.18 h1:PWr/yifVkRyTGHjazp/TnN+h0QpLjPLpLr+KGuIehPE=
 github.com/tliron/kutil v0.3.18/go.mod h1:kG1q5w/3HCqDvignwn4isRbfFogBPoOwXW4RM/xnPjU=
+github.com/tliron/kutil v0.3.23 h1:c8x/tOF1wxD0zzy7agSnk/x6MW/wAY4Nxeu2Yi198sg=
+github.com/tliron/kutil v0.3.23/go.mod h1:2iSIhOnOe1reqczZQy6TauVHhItsq6xRLV2rVBvodpk=
 golang.org/x/crypto v0.21.0 h1:X31++rzVUdKhX5sWmSOFZxx8UW/ldWx55cbf08iNAMA=
 golang.org/x/crypto v0.21.0/go.mod h1:0BP7YvVV9gBbVKyeTG0Gyn+gZm94bibOW5BjDEYAOMs=
 golang.org/x/net v0.21.0 h1:AQyQV4dYCvJ7vGmJyKki9+PBdyvhkSd8EIx/qb0AYv4=

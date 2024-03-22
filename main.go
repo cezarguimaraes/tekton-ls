@@ -10,11 +10,13 @@ import (
 	_ "github.com/tliron/commonlog/simple"
 )
 
+var version string = "dev"
+
 func main() {
 	// This increases logging verbosity (optional)
 	commonlog.Configure(2, nil)
 
-	th := lsp.NewTektonHandler()
+	th := lsp.NewTektonHandler(version)
 
 	server := server.NewServer(&th.Handler, th.Name(), true)
 	th.Log = server.Log

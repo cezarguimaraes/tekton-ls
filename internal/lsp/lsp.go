@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	lsName  = "tekton-ls"
-	version = "0.0.1"
+	lsName = "tekton-ls"
 )
 
 // TektonHandler implements the LSP handlers.
@@ -22,11 +21,14 @@ type TektonHandler struct {
 	Log commonlog.Logger
 
 	workspace *tekton.Workspace
+
+	version string
 }
 
-func NewTektonHandler() *TektonHandler {
+func NewTektonHandler(version string) *TektonHandler {
 	th := &TektonHandler{
 		workspace: tekton.NewWorkspace(),
+		version:   version,
 	}
 	th.Handler = protocol.Handler{
 		Initialize:                th.initialize(),
@@ -99,12 +101,11 @@ func (th *TektonHandler) initialize() protocol.InitializeFunc {
 		}
 		th.workspace.Lint()
 
-		ver := version
 		return protocol.InitializeResult{
 			Capabilities: capabilities,
 			ServerInfo: &protocol.InitializeResultServerInfo{
 				Name:    lsName,
-				Version: &ver,
+				Version: &th.version,
 			},
 		}, nil
 	}
