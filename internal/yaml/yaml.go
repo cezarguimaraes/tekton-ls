@@ -127,7 +127,7 @@ func VisitPath(node ast.Node, paths []*yaml.Path, f PathFunc, nodes ...ParsedNod
 // TODO: move to yaml package
 type VisitFunc = func(ast.Node)
 
-// deprecated: should be substituded by visitPaths.
+// deprecated: should be substituted by visitPaths.
 func VisitNodes(node ast.Node, depth int, f VisitFunc) {
 	if node == nil {
 		return
