@@ -5,9 +5,7 @@ type IdentTask StringMap
 var _ Meta = PipelineTask{}
 
 func (p IdentTask) Completions() []completion {
-	return []completion{
-		{},
-	}
+	return []completion{}
 }
 
 func (p IdentTask) Name() string {

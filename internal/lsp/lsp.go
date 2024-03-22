@@ -93,6 +93,9 @@ func (th *TektonHandler) initialize() protocol.InitializeFunc {
 		capabilities.CompletionProvider.TriggerCharacters = []string{
 			".",
 			"(",
+			"-",
+			" ",
+			"\"",
 		}
 
 		// TODO: support rootUri and rootPath as well
@@ -136,7 +139,7 @@ func (th *TektonHandler) docCompletion() protocol.TextDocumentCompletionFunc {
 		var cs []protocol.CompletionItem
 		f := getDoc(th, params.TextDocument)
 
-		start := f.FindPrevious("$ ", params.Position)
+		start := f.FindPrevious("$ -\"", params.Position)
 		if start == -1 {
 			return nil, nil
 		}

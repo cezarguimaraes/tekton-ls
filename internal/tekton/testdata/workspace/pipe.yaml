@@ -19,7 +19,7 @@ spec:
       taskRef:
         name: gen-code
       runAfter:
-        - gen-code
+      - gen-code
       workspaces:
         - name: source
           workspace: source
