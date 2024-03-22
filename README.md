@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/cezarguimaraes/tekton-ls/blob/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cezarguimaraes/tekton-ls)](https://goreportcard.com/report/github.com/cezarguimaraes/tekton-ls)
 ![CI](https://github.com/cezarguimaraes/tekton-ls/actions/workflows/go.yml/badge.svg)
+[![Go Reference](https://pkg.go.dev/badge/github.com/cezarguimaraes/tekton-ls.svg)](https://pkg.go.dev/github.com/cezarguimaraes/tekton-ls)
 
 `tekton-ls` is a work-in-progress language server for [Tekton Pipelines](https://github.com/tektoncd/pipeline).
 It currently supports `auto-completion`, `go-to-definition`, `find-references`, `rename` and `diagnostics` for:
